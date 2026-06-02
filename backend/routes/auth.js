@@ -11,7 +11,14 @@ router.post('/register', async (req, res) => {
   const { data: created, error: createErr } = await supabase.auth.admin.createUser({
     email, password, email_confirm: true,
   });
-  if (createErr) return res.status(400).json({ error: createErr.message });
+  if (createErr) {
+    // If email already exists in auth, give a clear message
+    const msg = createErr.message.toLowerCase();
+    if (msg.includes('already') || msg.includes('exists')) {
+      return res.status(400).json({ error: 'This email is already registered. Please sign in instead.' });
+    }
+    return res.status(400).json({ error: createErr.message });
+  }
 
   // Insert profile row with 0 credits
   const { error: insertErr } = await supabase.from('users').insert({ id: created.user.id, email, credits: 0 });
