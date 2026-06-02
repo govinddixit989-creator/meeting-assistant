@@ -1040,12 +1040,16 @@ footer{
       <div style="padding:8px 0">
         <div class="wait-icon"></div>
         <div class="wait-title">Waiting for confirmation</div>
-        <div class="wait-sub">We'll verify your payment and activate your account — usually within a few hours. Keep this tab open.</div>
+        <div class="wait-sub">Once payment is confirmed we'll activate your account. This page checks automatically.</div>
         <div class="wait-email-box" id="waitEmail"></div>
-        <div class="wait-pulse">
+        <div class="wait-pulse" style="margin-top:16px">
           <span class="wait-pulse-dot"></span>
-          Checking automatically…
+          <span id="pollStatus">Checking…</span>
         </div>
+        <div id="pollError" style="font-size:11px;color:#F87171;text-align:center;margin-top:8px;min-height:14px"></div>
+        <button class="modal-btn" id="checkNowBtn" style="margin-top:16px;background:rgba(255,255,255,.07);box-shadow:none;font-weight:600">
+          Check now ↻
+        </button>
       </div>
     </div>
 
@@ -1190,6 +1194,7 @@ document.getElementById('step1Btn').addEventListener('click', async () => {
 
     userToken = d.token;
     userEmail = email;
+    saveSession(d.token, d.refresh_token, email);
 
     document.getElementById('refEmail').textContent = email;
     document.getElementById('waitEmail').textContent = email;
@@ -1209,27 +1214,96 @@ document.getElementById('step2Btn').addEventListener('click', () => {
   startPolling();
 });
 
-// Poll /user/credits every 8 seconds — show download when credits > 0
+// Persist token across page refreshes
+function saveSession(token, refresh, email) {
+  sessionStorage.setItem('ma_token',   token);
+  sessionStorage.setItem('ma_refresh', refresh || '');
+  sessionStorage.setItem('ma_email',   email  || '');
+}
+function loadSession() {
+  return {
+    token:   sessionStorage.getItem('ma_token')   || '',
+    refresh: sessionStorage.getItem('ma_refresh') || '',
+    email:   sessionStorage.getItem('ma_email')   || '',
+  };
+}
+
+// Poll /user/credits — show download when credits > 0
 function startPolling() {
   if (pollTimer) clearInterval(pollTimer);
+  document.getElementById('checkNowBtn').addEventListener('click', () => checkCredits());
+  checkCredits();
+  pollTimer = setInterval(checkCredits, 8000);
+}
 
-  async function check() {
-    try {
-      const res = await fetch(API + '/user/credits', {
-        headers: { 'Authorization': 'Bearer ' + userToken }
-      });
-      if (!res.ok) return;
-      const { credits } = await res.json();
-      if (credits > 0) {
-        clearInterval(pollTimer);
-        pollTimer = null;
-        showStep(4);
-      }
-    } catch(e) {}
+async function checkCredits() {
+  const statusEl = document.getElementById('pollStatus');
+  const errorEl  = document.getElementById('pollError');
+  statusEl.textContent = 'Checking…';
+  errorEl.textContent  = '';
+
+  // Try to refresh token if we have a refresh token
+  if (!userToken) {
+    const sess = loadSession();
+    if (sess.token) {
+      userToken   = sess.token;
+      userEmail   = sess.email;
+    }
   }
 
-  check(); // check immediately
-  pollTimer = setInterval(check, 8000);
+  if (!userToken) {
+    errorEl.textContent = 'Session lost — please register again.';
+    statusEl.textContent = 'Error';
+    return;
+  }
+
+  try {
+    let res = await fetch(API + '/user/credits', {
+      headers: { 'Authorization': 'Bearer ' + userToken }
+    });
+
+    // Token expired — try refresh
+    if (res.status === 401) {
+      const sess = loadSession();
+      if (sess.refresh) {
+        const r = await fetch(API + '/auth/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: sess.refresh })
+        });
+        if (r.ok) {
+          const d = await r.json();
+          userToken = d.token;
+          saveSession(d.token, d.refresh_token, userEmail);
+          res = await fetch(API + '/user/credits', {
+            headers: { 'Authorization': 'Bearer ' + userToken }
+          });
+        } else {
+          errorEl.textContent = 'Session expired — please register again.';
+          statusEl.textContent = 'Error';
+          return;
+        }
+      }
+    }
+
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      errorEl.textContent = 'Server error: ' + (d.error || res.status);
+      statusEl.textContent = 'Error';
+      return;
+    }
+
+    const { credits } = await res.json();
+    statusEl.textContent = `Credits: ${credits} — checking every 8s`;
+
+    if (credits > 0) {
+      if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+      showStep(4);
+    }
+  } catch(e) {
+    errorEl.textContent = 'Cannot reach server: ' + e.message;
+    statusEl.textContent = 'Error';
+  }
 }
 </script>
 </body>
