@@ -1,0 +1,27 @@
+{
+  "name": "meeting-assistant",
+  "version": "1.0.0",
+  "description": "AI meeting assistant overlay",
+  "author": "Meeting Assistant",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node_modules/electron/dist/electron.exe .",
+    "dev": "node_modules/electron/dist/electron.exe . --dev",
+    "build": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "com.meeting.assistant",
+    "productName": "MeetingAssistant",
+    "win": {
+      "target": "portable"
+    }
+  },
+  "dependencies": {
+    "highlight.js": "^11.11.1",
+    "marked": "^4.3.0"
+  }
+}

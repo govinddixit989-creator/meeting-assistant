@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>AI Assistant</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:rgba(9,9,12,0.94);
+  --s1:rgba(255,255,255,0.04);
+  --s2:rgba(255,255,255,0.07);
+  --b1:rgba(255,255,255,0.08);
+  --b2:rgba(255,255,255,0.15);
+  --tx:#EEEEF0;
+  --mu:rgba(238,238,240,0.40);
+  --mu2:rgba(238,238,240,0.62);
+  --gr:#10B981;
+  --gd:rgba(16,185,129,0.08);
+  --gb:rgba(16,185,129,0.26);
+  --rd:#F87171;
+  --am:#FBBF24;
+  --f:'Segoe UI',Inter,system-ui,sans-serif;
+  --r:7px;
+}
+html,body{
+  width:360px;background:transparent;color:var(--tx);
+  font-family:var(--f);font-size:13px;
+  user-select:none;overflow:hidden;
+}
+.app{
+  width:360px;
+  background:var(--bg);
+  border:1px solid var(--b2);
+  border-radius:12px;
+  overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,0.8),0 0 0 0.5px rgba(255,255,255,0.04);
+  transition:background .2s;
+}
+
+/* ── Titlebar ─────────────────────── */
+.bar{
+  display:flex;align-items:center;gap:6px;
+  height:40px;padding:0 10px;
+  -webkit-app-region:drag;
+  border-bottom:1px solid var(--b1);
+  flex-shrink:0;
+}
+.bar *{-webkit-app-region:no-drag}
+.dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--mu);flex-shrink:0;transition:background .25s;
+}
+.dot.live{background:var(--gr);animation:pulse 1.2s infinite}
+.dot.thinking{background:var(--am);animation:pulse .65s infinite}
+@keyframes pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.45)}
+  50%{box-shadow:0 0 0 4px rgba(16,185,129,0)}
+}
+.bar-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mu2)}
+.bar-timer{font-size:9.5px;color:var(--mu);font-variant-numeric:tabular-nums;margin-left:1px}
+.bar-sp{flex:1}
+.ib{
+  width:24px;height:24px;border-radius:5px;border:none;
+  background:transparent;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--mu);font-size:12px;transition:all .14s;
+}
+.ib:hover{background:var(--s2);color:var(--tx)}
+.ib.rec{color:var(--rd)}
+.ib.active{color:var(--gr)}
+
+/* ── Settings panel ───────────────── */
+.sp{border-bottom:1px solid var(--b1);background:rgba(255,255,255,0.02)}
+.sp-row{padding:8px 12px}
+.sp-row+.sp-row{border-top:1px solid var(--b1)}
+.sp-lbl{
+  font-size:9px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--mu);margin-bottom:5px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.sp-lbl span{color:var(--gr);font-variant-numeric:tabular-nums;font-size:10px;font-weight:600;letter-spacing:0;text-transform:none}
+.sp input[type=password],.sp textarea{
+  width:100%;padding:6px 9px;
+  background:var(--s1);border:1px solid var(--b1);
+  border-radius:var(--r);color:var(--tx);font-size:11.5px;
+  font-family:var(--f);outline:none;
+}
+.sp input[type=password]:focus,.sp textarea:focus{
+  border-color:var(--gr);box-shadow:0 0 0 2px rgba(16,185,129,.1);
+}
+.sp textarea{resize:none;line-height:1.55}
+.sp-krow{display:flex;align-items:center;gap:7px}
+.sp-krow input{flex:1}
+.sp a{font-size:10px;color:var(--gr);text-decoration:none;white-space:nowrap;flex-shrink:0}
+.sp a:hover{text-decoration:underline}
+input[type=range]{
+  width:100%;height:3px;cursor:pointer;
+  accent-color:var(--gr);background:transparent;
+  -webkit-appearance:none;appearance:none;
+}
+input[type=range]::-webkit-slider-runnable-track{height:3px;background:var(--b2);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:12px;height:12px;
+  border-radius:50%;background:var(--gr);margin-top:-4.5px;cursor:pointer;
+}
+
+/* ── Chat feed ────────────────────── */
+.chat{
+  display:flex;flex-direction:column;
+  max-height:380px;overflow-y:auto;overflow-x:hidden;
+}
+.chat::-webkit-scrollbar{width:3px}
+.chat::-webkit-scrollbar-track{background:transparent}
+.chat::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+
+.msg{padding:8px 12px;border-left:2px solid transparent}
+.msg+.msg{border-top:1px solid var(--b1)}
+.msg.you{border-left-color:var(--b2)}
+.msg.ai{border-left-color:var(--gr);background:var(--gd)}
+.msg.streaming{border-left-color:var(--gb);background:rgba(16,185,129,.05)}
+.msg.error{border-left-color:var(--rd);background:rgba(248,113,113,.05)}
+
+.ml{
+  font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  margin-bottom:3px;display:flex;align-items:center;gap:5px;
+}
+.msg.you .ml{color:var(--mu)}
+.msg.ai .ml,.msg.streaming .ml{color:var(--gr)}
+.msg.error .ml{color:var(--rd)}
+
+.mt{font-size:12px;line-height:1.6;white-space:pre-wrap;user-select:text}
+.msg.you .mt{color:var(--mu2);font-size:11.5px}
+.msg.error .mt{color:var(--rd)}
+
+.cursor::after{content:'▋';animation:blink .7s infinite;color:var(--gr);font-size:10px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+.cp{
+  margin-left:auto;font-size:9px;padding:1px 6px;border-radius:3px;
+  border:1px solid var(--b1);background:transparent;
+  color:var(--mu);cursor:pointer;transition:all .12s;display:none;
+}
+.msg:hover .cp{display:inline-block}
+.cp:hover{color:var(--tx);border-color:var(--b2)}
+
+/* ── Empty state ──────────────────── */
+.empty{
+  padding:16px 12px;color:var(--mu);font-size:11.5px;
+  line-height:2;text-align:center;
+}
+.empty kbd{
+  font-size:10px;padding:1px 5px;border-radius:3px;
+  background:var(--s2);border:1px solid var(--b2);
+  font-family:monospace;color:var(--mu2);
+}
+
+/* ── Screenshot bar ───────────────── */
+.ssb{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 12px;border-top:1px solid var(--b1);background:var(--s1);
+}
+.ssb img{width:32px;height:21px;object-fit:cover;border-radius:3px;border:1px solid var(--b1);flex-shrink:0}
+.ssb span{font-size:10.5px;color:var(--mu2);flex:1}
+.ssb button{
+  font-size:10px;padding:2px 7px;border-radius:3px;
+  border:1px solid var(--b1);background:transparent;color:var(--mu);cursor:pointer;
+}
+.ssb button:hover{color:var(--rd);border-color:rgba(248,113,113,.35)}
+
+/* ── Footer ───────────────────────── */
+.foot{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:5px 12px;border-top:1px solid var(--b1);
+}
+.foot span{font-size:10px;color:var(--mu)}
+
+/* ── Markdown rendering ──────────── */
+.markdown{font-size:12px;line-height:1.65;white-space:normal}
+.markdown p{margin:0 0 6px}
+.markdown p:last-child{margin-bottom:0}
+.markdown ul,.markdown ol{padding-left:16px;margin:4px 0}
+.markdown li{margin-bottom:2px}
+.markdown strong{color:var(--tx);font-weight:600}
+.markdown em{color:var(--mu2);font-style:italic}
+.markdown h1,.markdown h2,.markdown h3{
+  color:var(--tx);font-size:12.5px;font-weight:700;margin:8px 0 4px;
+}
+.markdown pre{
+  background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.12);
+  border-radius:6px;padding:10px 12px;overflow-x:auto;margin:6px 0;
+}
+.markdown pre::-webkit-scrollbar{height:3px}
+.markdown pre::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.markdown code{
+  font-family:'Cascadia Code','Consolas','Courier New',monospace;
+  font-size:11.5px;line-height:1.55;
+}
+.markdown :not(pre)>code{
+  background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.12);
+  border-radius:3px;padding:1px 5px;font-size:11px;color:#98c379;
+}
+/* highlight.js — atom-one-dark */
+.hljs{color:#abb2bf}
+.hljs-keyword,.hljs-operator{color:#c678dd}
+.hljs-function .hljs-title,.hljs-title.function_{color:#61afef}
+.hljs-title,.hljs-title.class_{color:#e5c07b}
+.hljs-string,.hljs-regexp,.hljs-addition{color:#98c379}
+.hljs-number,.hljs-literal{color:#d19a66}
+.hljs-comment,.hljs-quote{color:#5c6370;font-style:italic}
+.hljs-variable,.hljs-template-variable,.hljs-deletion{color:#e06c75}
+.hljs-built_in,.hljs-builtin-name{color:#56b6c2}
+.hljs-attr,.hljs-attribute{color:#d19a66}
+.hljs-tag{color:#e06c75}
+.hljs-name{color:#e06c75}
+.hljs-selector-tag,.hljs-selector-id,.hljs-selector-class{color:#e06c75}
+.hljs-meta,.hljs-meta .hljs-keyword{color:#c678dd}
+.hljs-params{color:#abb2bf}
+.hljs-symbol,.hljs-bullet{color:#61afef}
+.hljs-section{color:#61afef;font-weight:700}
+.hljs-type{color:#e5c07b}
+
+/* ── Live transcript bubble ───────── */
+.msg.live{border-left-color:var(--gb);background:rgba(16,185,129,.03)}
+.msg.live .ml{color:var(--gr)}
+.msg.live .mt{color:var(--mu2);font-size:11.5px;font-style:italic}
+.live-dot{
+  display:inline-block;width:5px;height:5px;border-radius:50%;
+  background:var(--gr);margin-right:4px;vertical-align:middle;
+  animation:pulse 1.2s infinite;
+}
+
+/* ── Login screen ─────────────────── */
+.login-wrap{
+  padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.login-logo{
+  font-size:17px;font-weight:800;letter-spacing:-.02em;margin-bottom:2px;
+  color:var(--tx);
+}
+.login-logo span{color:var(--gr)}
+.login-sub{font-size:10px;color:var(--mu);margin-bottom:14px;letter-spacing:.04em}
+.login-input{
+  width:100%;padding:7px 10px;margin-bottom:7px;
+  background:var(--s1);border:1px solid var(--b1);
+  border-radius:var(--r);color:var(--tx);font-size:12px;
+  font-family:var(--f);outline:none;
+}
+.login-input:focus{border-color:var(--gr);box-shadow:0 0 0 2px rgba(16,185,129,.1)}
+.login-btn{
+  width:100%;padding:8px;border:none;border-radius:var(--r);
+  background:linear-gradient(135deg,var(--gr),#059669);
+  color:#fff;font-size:12px;font-weight:700;cursor:pointer;
+  transition:opacity .15s;margin-top:2px;font-family:var(--f);
+}
+.login-btn:hover{opacity:.9}
+.login-btn:disabled{opacity:.5;cursor:not-allowed}
+.login-err{font-size:10.5px;color:var(--rd);min-height:14px;margin-bottom:4px;text-align:center}
+.login-switch{font-size:10.5px;color:var(--mu);margin-top:10px;text-align:center}
+.login-switch a{color:var(--gr);text-decoration:none;font-weight:600}
+
+/* ── Credits badge ────────────────── */
+.credits-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:7px 12px;border-bottom:1px solid var(--b1);
+  background:rgba(16,185,129,.04);
+}
+.credits-info{font-size:10px;color:var(--mu)}
+.credits-val{font-size:11px;font-weight:700;color:var(--gr)}
+.credits-val.low{color:var(--rd)}
+.btn-small{
+  font-size:9.5px;padding:3px 8px;border-radius:4px;border:1px solid var(--gb);
+  background:var(--gd);color:var(--gr);cursor:pointer;font-family:var(--f);
+  white-space:nowrap;transition:all .12s;
+}
+.btn-small:hover{background:var(--gb)}
+.btn-logout{border-color:var(--b2);background:transparent;color:var(--mu)}
+.btn-logout:hover{color:var(--rd);border-color:rgba(248,113,113,.35)}
+</style>
+</head>
+<body>
+<!-- Login / Register screen (shown when not authenticated) -->
+<div class="app" id="loginApp" style="display:none">
+  <div class="bar">
+    <div class="bar-sp"></div>
+    <button class="ib" id="closeLoginBtn" title="Quit">✕</button>
+  </div>
+  <div class="login-wrap">
+    <div class="login-logo">Meet<span>Assist</span></div>
+    <div class="login-sub">AI MEETING ASSISTANT</div>
+
+    <!-- Login form -->
+    <div id="loginForm" style="width:100%">
+      <input class="login-input" type="email"    id="loginEmail" placeholder="Email" autocomplete="off" spellcheck="false"/>
+      <input class="login-input" type="password" id="loginPass"  placeholder="Password"/>
+      <div class="login-err" id="loginErr"></div>
+      <button class="login-btn" id="loginBtn">Sign in</button>
+      <div class="login-switch">No account? <a href="#" id="showRegister">Create one free</a></div>
+    </div>
+
+    <!-- Register form -->
+    <div id="registerForm" style="display:none;width:100%">
+      <input class="login-input" type="email"    id="regEmail" placeholder="Email" autocomplete="off" spellcheck="false"/>
+      <input class="login-input" type="password" id="regPass"  placeholder="Password (min 6 chars)"/>
+      <div class="login-err" id="regErr"></div>
+      <button class="login-btn" id="regBtn">Create account</button>
+      <div class="login-switch">Have an account? <a href="#" id="showLogin">Sign in</a></div>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="app" style="display:none">
+
+  <!-- Titlebar -->
+  <div class="bar">
+    <div class="dot" id="dot"></div>
+    <span class="bar-title">Assistant</span>
+    <span class="bar-timer" id="timer" style="display:none">00:00</span>
+    <div class="bar-sp"></div>
+    <button class="ib" id="settingsBtn" title="Settings">⚙</button>
+    <button class="ib" id="micBtn"      title="Mic  Ctrl+Shift+M">🎙</button>
+    <button class="ib" id="sysBtn"      title="Speaker audio  Ctrl+Shift+A">🔊</button>
+    <button class="ib" id="ssBtn"       title="Screenshot  Ctrl+Shift+S">📸</button>
+    <button class="ib" id="clearBtn"    title="Clear chat  Ctrl+C">⌫</button>
+    <button class="ib" id="closeBtn"    title="Quit">✕</button>
+  </div>
+
+  <!-- Settings panel -->
+  <div class="sp" id="sp" style="display:none">
+
+    <div class="credits-row">
+      <div>
+        <div class="credits-info" id="userEmail">Loading…</div>
+        <div class="credits-val" id="creditsVal">— credits</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-small" id="buyBtn">+ Buy credits</button>
+        <button class="btn-small btn-logout" id="logoutBtn">Sign out</button>
+      </div>
+    </div>
+
+    <div class="sp-row">
+      <div class="sp-lbl">Opacity <span id="opVal">94%</span></div>
+      <input type="range" id="opSlider" min="15" max="100" value="94"/>
+    </div>
+
+    <div class="sp-row">
+      <div class="sp-lbl">How to answer</div>
+      <textarea id="customPrompt" rows="2"
+        placeholder="e.g. Respond in bullet points · Be more technical · Answer in Hindi · Keep it under 2 sentences"></textarea>
+    </div>
+
+  </div>
+
+  <!-- Chat feed -->
+  <div class="chat" id="chat">
+    <div class="empty" id="emptyEl">
+      <kbd>Ctrl+Shift+M</kbd> mic &nbsp;·&nbsp; <kbd>Ctrl+Shift+A</kbd> speaker<br/>
+      <kbd>Ctrl+Shift+S</kbd> screenshot &nbsp;·&nbsp; <kbd>Ctrl+S</kbd> ask AI
+    </div>
+  </div>
+
+  <!-- Screenshot attachment -->
+  <div class="ssb" id="ssb" style="display:none">
+    <img id="ssThumb" src="" alt=""/>
+    <span>Screenshot attached</span>
+    <button id="clearSsBtn">✕ clear</button>
+  </div>
+
+  <!-- Status -->
+  <div class="foot">
+    <span id="statusEl">Ready · Ctrl+Shift+M mic · Ctrl+S ask</span>
+    <span id="wcEl"></span>
+  </div>
+
+</div>
+<script>
+'use strict';
+const { ipcRenderer, shell } = require('electron');
+const { marked }  = require('marked');
+const hljs        = require('highlight.js');
+
+marked.setOptions({
+  highlight(code, lang) {
+    if (lang && hljs.getLanguage(lang)) return hljs.highlight(code, { language: lang }).value;
+    return hljs.highlightAuto(code).value;
+  },
+  breaks: true, gfm: true,
+});
+marked.use({ mangle: false, headerIds: false });
+
+// ── Backend URL ───────────────────────────────────────────────
+const API = 'https://your-backend.up.railway.app'; // ← replace with Railway URL after deploying
+
+const $ = id => document.getElementById(id);
+const dot         = $('dot');
+const timerEl     = $('timer');
+const micBtn      = $('micBtn');
+const sysBtn      = $('sysBtn');
+const ssBtn       = $('ssBtn');
+const closeBtn    = $('closeBtn');
+const settingsBtn = $('settingsBtn');
+const sp          = $('sp');
+const opSlider    = $('opSlider');
+const opVal       = $('opVal');
+const customPromptEl = $('customPrompt');
+const chat        = $('chat');
+const ssb         = $('ssb');
+const ssThumb     = $('ssThumb');
+const clearSsBtn  = $('clearSsBtn');
+const statusEl    = $('statusEl');
+const wcEl        = $('wcEl');
+
+let micOn = false, micStream = null, micRecorder = null, micChunks = [];
+let micMimeType = '', micAskCallback = null, micChunkInterval = null;
+let liveEl = null;
+let sysOn = false, sysStream = null, sysRecorder = null, sysChunkInterval = null, sysChunks = [];
+let sysAudioCtx = null, sysLevelInterval = null;
+let transcript = '', lastSent = '', screenshot = null;
+let busy = false, sessionStart = null, timerTick = null;
+
+// ── Auth helpers ──────────────────────────────────────────────
+function getToken() { return localStorage.getItem('ma_token') || ''; }
+function getRefresh() { return localStorage.getItem('ma_refresh') || ''; }
+
+async function authFetch(url, opts = {}) {
+  opts.headers = opts.headers || {};
+  opts.headers['Authorization'] = 'Bearer ' + getToken();
+  let res = await fetch(API + url, opts);
+  if (res.status === 401 && getRefresh()) {
+    // Try to refresh the token
+    const r = await fetch(API + '/auth/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: getRefresh() })
+    });
+    if (r.ok) {
+      const d = await r.json();
+      localStorage.setItem('ma_token', d.token);
+      localStorage.setItem('ma_refresh', d.refresh_token);
+      opts.headers['Authorization'] = 'Bearer ' + d.token;
+      res = await fetch(API + url, opts);
+    } else {
+      logout();
+      return res;
+    }
+  }
+  return res;
+}
+
+async function loadCredits() {
+  try {
+    const res = await authFetch('/user/credits');
+    if (!res.ok) return;
+    const { email, credits } = await res.json();
+    $('userEmail').textContent = email || '';
+    const el = $('creditsVal');
+    el.textContent = credits + ' credits';
+    el.className = 'credits-val' + (credits <= 5 ? ' low' : '');
+  } catch(e) {}
+}
+
+function logout() {
+  localStorage.removeItem('ma_token');
+  localStorage.removeItem('ma_refresh');
+  localStorage.removeItem('ma_email');
+  stopMic(); stopSys();
+  $('app').style.display = 'none';
+  $('loginApp').style.display = 'block';
+  $('loginErr').textContent = '';
+  resizeLogin();
+}
+
+function showApp(email) {
+  localStorage.setItem('ma_email', email);
+  $('loginApp').style.display = 'none';
+  $('app').style.display = 'block';
+  $('userEmail').textContent = email;
+  loadCredits();
+  const savedOp = parseInt(localStorage.getItem('opacity') || '94');
+  opSlider.value = savedOp;
+  opVal.textContent = savedOp + '%';
+  applyOpacity(savedOp);
+  customPromptEl.value = localStorage.getItem('custom_prompt') || '';
+  setStatus('Ready · Ctrl+Shift+M mic · Ctrl+S ask');
+  resize();
+}
+
+// ── Login screen ──────────────────────────────────────────────
+$('closeLoginBtn').addEventListener('click', () => ipcRenderer.send('quit'));
+
+$('showRegister').addEventListener('click', e => {
+  e.preventDefault();
+  $('loginForm').style.display = 'none';
+  $('registerForm').style.display = 'block';
+  resizeLogin();
+});
+$('showLogin').addEventListener('click', e => {
+  e.preventDefault();
+  $('registerForm').style.display = 'none';
+  $('loginForm').style.display = 'block';
+  resizeLogin();
+});
+
+$('loginBtn').addEventListener('click', async () => {
+  const email = $('loginEmail').value.trim();
+  const pass  = $('loginPass').value;
+  $('loginErr').textContent = '';
+  if (!email || !pass) { $('loginErr').textContent = 'Email and password required'; return; }
+  $('loginBtn').disabled = true; $('loginBtn').textContent = 'Signing in…';
+  try {
+    const res = await fetch(API + '/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const d = await res.json();
+    if (!res.ok) { $('loginErr').textContent = d.error || 'Login failed'; return; }
+    localStorage.setItem('ma_token', d.token);
+    localStorage.setItem('ma_refresh', d.refresh_token);
+    showApp(d.user.email);
+  } catch(e) {
+    $('loginErr').textContent = 'Cannot reach server. Is the backend running?';
+  } finally {
+    $('loginBtn').disabled = false; $('loginBtn').textContent = 'Sign in';
+  }
+});
+
+$('regBtn').addEventListener('click', async () => {
+  const email = $('regEmail').value.trim();
+  const pass  = $('regPass').value;
+  $('regErr').textContent = '';
+  if (!email || !pass) { $('regErr').textContent = 'Email and password required'; return; }
+  $('regBtn').disabled = true; $('regBtn').textContent = 'Creating account…';
+  try {
+    const res = await fetch(API + '/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const d = await res.json();
+    if (!res.ok) { $('regErr').textContent = d.error || 'Registration failed'; return; }
+    localStorage.setItem('ma_token', d.token);
+    localStorage.setItem('ma_refresh', d.refresh_token);
+    showApp(d.user.email);
+  } catch(e) {
+    $('regErr').textContent = 'Cannot reach server. Is the backend running?';
+  } finally {
+    $('regBtn').disabled = false; $('regBtn').textContent = 'Create account';
+  }
+});
+
+// ── Startup: check existing token ─────────────────────────────
+(async () => {
+  if (getToken()) {
+    try {
+      const res = await authFetch('/user/credits');
+      if (res.ok) {
+        const d = await res.json();
+        showApp(d.email);
+        return;
+      }
+    } catch(e) {}
+  }
+  $('loginApp').style.display = 'block';
+  resizeLogin();
+})();
+
+// ── Settings panel toggle ─────────────────────────────────────
+settingsBtn.addEventListener('click', () => {
+  const open = sp.style.display === 'none';
+  sp.style.display = open ? 'block' : 'none';
+  settingsBtn.classList.toggle('active', open);
+  if (open) loadCredits();
+  resize();
+});
+
+$('buyBtn').addEventListener('click', () => {
+  shell.openExternal('https://meetassist.com/#pricing');
+});
+
+$('logoutBtn').addEventListener('click', logout);
+
+// ── Opacity ───────────────────────────────────────────────────
+opSlider.addEventListener('input', () => {
+  const v = parseInt(opSlider.value);
+  opVal.textContent = v + '%';
+  applyOpacity(v);
+  localStorage.setItem('opacity', v);
+});
+
+function applyOpacity(v) {
+  $('app').style.background = `rgba(9,9,12,${(v / 100).toFixed(2)})`;
+}
+
+// ── Custom prompt ─────────────────────────────────────────────
+customPromptEl.addEventListener('input', () => {
+  localStorage.setItem('custom_prompt', customPromptEl.value.trim());
+  resize();
+});
+
+// ── Close ─────────────────────────────────────────────────────
+closeBtn.addEventListener('click', () => ipcRenderer.send('quit'));
+
+// ── Keyboard shortcuts ────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 's' && !e.shiftKey && !e.altKey) {
+    e.preventDefault();
+    askAI();
+    return;
+  }
+  if (e.ctrlKey && e.key === 'c' && !e.shiftKey && !e.altKey) {
+    // Only clear when nothing is selected — let browser copy selected text normally
+    const sel = window.getSelection();
+    if (!sel || sel.toString() === '') {
+      e.preventDefault();
+      clearChat();
+      return;
+    }
+  }
+  if (e.ctrlKey && !e.shiftKey && !e.altKey) {
+    const move = { ArrowUp:[0,-30], ArrowDown:[0,30], ArrowLeft:[-30,0], ArrowRight:[30,0] }[e.key];
+    if (move) { e.preventDefault(); ipcRenderer.send('move-window', move); }
+  }
+});
+
+// ── IPC from main ─────────────────────────────────────────────
+ipcRenderer.on('toggle-mic',         toggleMic);
+ipcRenderer.on('toggle-sys',         toggleSys);
+ipcRenderer.on('trigger-screenshot', takeScreenshot);
+ipcRenderer.on('trigger-ask',        askAI);
+
+// ── Mic ───────────────────────────────────────────────────────
+micBtn.addEventListener('click', toggleMic);
+
+function toggleMic() { micOn ? stopMic() : startMic(); }
+
+async function startMic() {
+  if (!getToken()) { setStatus('Sign in to use mic'); return; }
+
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  } catch(e) {
+    setStatus('Mic denied: ' + e.message);
+    return;
+  }
+
+  micMimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+    ? 'audio/webm;codecs=opus' : 'audio/webm';
+
+  micChunks = [];
+  micRecorder = new MediaRecorder(micStream, { mimeType: micMimeType });
+
+  micRecorder.ondataavailable = e => {
+    if (e.data && e.data.size > 0) micChunks.push(e.data);
+  };
+
+  micRecorder.onstop = async () => {
+    const localChunks = micChunks.splice(0);
+    const cb = micAskCallback;
+    micAskCallback = null;
+    if (micOn) micRecorder.start(); // keep recording after each Ctrl+S
+    if (localChunks.length > 0) {
+      const blob = new Blob(localChunks, { type: micMimeType });
+      await transcribeMic(blob);
+    }
+    if (cb) cb(); // unblock askAI
+  };
+
+  micRecorder.start();
+  micOn = true;
+  micBtn.classList.add('rec');
+  setDot('live');
+  setStatus('Listening · Ctrl+S to ask AI');
+  startTimer();
+  showLiveTranscript();
+
+  // Auto-chunk every 4 s so words appear live — skip if a manual flush is pending
+  micChunkInterval = setInterval(() => {
+    if (micRecorder && micRecorder.state === 'recording' && !micAskCallback) {
+      micRecorder.stop();
+    }
+  }, 4000);
+}
+
+function stopMic() {
+  micOn = false;
+  micAskCallback = null;
+  if (micChunkInterval) { clearInterval(micChunkInterval); micChunkInterval = null; }
+  if (micRecorder && micRecorder.state !== 'inactive') micRecorder.stop();
+  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  micRecorder = null;
+  micBtn.classList.remove('rec');
+  setDot(sysOn ? 'live' : 'idle');
+  setStatus('Mic off · Ctrl+S to ask AI');
+  finalizeLiveTranscript();
+}
+
+async function transcribeMic(blob) {
+  if (!getToken()) return;
+  try {
+    const form = new FormData();
+    form.append('file', blob, 'audio.webm');
+    form.append('model', 'whisper-large-v3-turbo');
+    form.append('response_format', 'json');
+    form.append('language', 'en');
+    const res = await authFetch('/ai/transcribe', { method: 'POST', body: form });
+    if (!res.ok) return;
+    const data = await res.json();
+    const text = (data.text || '').trim();
+    if (!text || text.length < 3 || WHISPER_HALLUCINATIONS.has(text.toLowerCase())) return;
+    transcript += text + ' ';
+    updateWC();
+    updateLiveTranscript();
+  } catch(e) {}
+}
+
+// ── Live transcript display ───────────────────────────────────
+function showLiveTranscript() {
+  if (liveEl) return;
+  clearEmpty();
+  liveEl = document.createElement('div');
+  liveEl.className = 'msg live';
+  const ml = document.createElement('div');
+  ml.className = 'ml';
+  ml.innerHTML = '<span class="live-dot"></span>You';
+  const mt = document.createElement('div');
+  mt.className = 'mt';
+  mt.textContent = 'Recording… press Ctrl+S to ask';
+  liveEl.appendChild(ml);
+  liveEl.appendChild(mt);
+  chat.appendChild(liveEl);
+  scrollBottom();
+  resize();
+}
+
+function updateLiveTranscript() {
+  if (!liveEl) showLiveTranscript();
+  const current = transcript.slice(lastSent.length).trim();
+  liveEl.querySelector('.mt').textContent = current || 'Recording… press Ctrl+S to ask';
+  scrollBottom();
+  resize();
+}
+
+function finalizeLiveTranscript() {
+  if (!liveEl) return;
+  const current = transcript.slice(lastSent.length).trim();
+  if (!current) {
+    liveEl.remove();
+  } else {
+    liveEl.className = 'msg you';
+    liveEl.querySelector('.ml').innerHTML = 'You';
+    liveEl.querySelector('.mt').style.fontStyle = '';
+  }
+  liveEl = null;
+  resize();
+}
+
+// ── Speaker / system audio ────────────────────────────────────
+sysBtn.addEventListener('click', toggleSys);
+
+function toggleSys() { sysOn ? stopSys() : startSys(); }
+
+async function startSys() {
+  if (!getToken()) { setStatus('Sign in to use speaker audio'); return; }
+
+  try {
+    const sources = await ipcRenderer.invoke('get-sources');
+    const screenSrc = sources.find(s => s.id.startsWith('screen:')) || sources[0];
+    if (!screenSrc) { setStatus('No screen source found for audio capture'); return; }
+
+    sysStream = await navigator.mediaDevices.getUserMedia({
+      audio: { mandatory: { chromeMediaSource: 'desktop' } },
+      video: {
+        mandatory: {
+          chromeMediaSource: 'desktop',
+          chromeMediaSourceId: screenSrc.id,
+          minWidth: 1, maxWidth: 1,
+          minHeight: 1, maxHeight: 1,
+        }
+      }
+    });
+
+    // Drop video tracks — we only need the audio
+    sysStream.getVideoTracks().forEach(t => t.stop());
+    const audioStream = new MediaStream(sysStream.getAudioTracks());
+
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : 'audio/webm';
+
+    // Monitor audio level — skip chunks that are silence
+    sysAudioCtx = new AudioContext();
+    const analyser = sysAudioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    sysAudioCtx.createMediaStreamSource(audioStream).connect(analyser);
+    const freqBuf = new Uint8Array(analyser.frequencyBinCount);
+    let hasAudio = false;
+
+    sysLevelInterval = setInterval(() => {
+      analyser.getByteFrequencyData(freqBuf);
+      const avg = freqBuf.reduce((a, b) => a + b, 0) / freqBuf.length;
+      if (avg > 5) hasAudio = true;
+    }, 200);
+
+    sysChunks = [];
+    sysRecorder = new MediaRecorder(audioStream, { mimeType });
+
+    sysRecorder.ondataavailable = e => {
+      if (e.data && e.data.size > 0) sysChunks.push(e.data);
+    };
+
+    sysRecorder.onstop = async () => {
+      const localChunks = sysChunks.splice(0);
+      const shouldTranscribe = hasAudio;
+      hasAudio = false; // reset for next chunk
+      if (sysOn) sysRecorder.start();
+      if (!shouldTranscribe || localChunks.length === 0) return;
+      const blob = new Blob(localChunks, { type: mimeType });
+      await transcribeAudio(blob);
+    };
+
+    sysRecorder.start();
+    sysOn = true;
+    sysBtn.classList.add('active');
+    setDot('live');
+    setStatus('Speaker audio on · Ctrl+S to ask AI');
+    if (!sessionStart) startTimer();
+
+    // Stop current recording every 6 s so onstop fires and we get a chunk
+    sysChunkInterval = setInterval(() => {
+      if (sysRecorder && sysRecorder.state === 'recording') sysRecorder.stop();
+    }, 6000);
+
+  } catch(e) {
+    setStatus('Speaker audio error: ' + e.message);
+  }
+}
+
+function stopSys() {
+  sysOn = false;
+  if (sysChunkInterval)  { clearInterval(sysChunkInterval);  sysChunkInterval = null; }
+  if (sysLevelInterval)  { clearInterval(sysLevelInterval);  sysLevelInterval = null; }
+  if (sysAudioCtx)       { sysAudioCtx.close().catch(()=>{}); sysAudioCtx = null; }
+  if (sysRecorder && sysRecorder.state !== 'inactive') sysRecorder.stop();
+  if (sysStream) { sysStream.getTracks().forEach(t => t.stop()); sysStream = null; }
+  sysRecorder = null;
+  sysBtn.classList.remove('active');
+  setDot(micOn ? 'live' : 'idle');
+  setStatus('Speaker audio off · Ctrl+S to ask AI');
+}
+
+// Common Whisper hallucinations on silence/noise — discard these
+const WHISPER_HALLUCINATIONS = new Set([
+  'thank you', 'thank you.', 'thanks', 'thanks.', 'thanks for watching',
+  'thanks for watching.', 'thanks for watching!', 'please subscribe',
+  'you', 'the', 'a', 'i', 'bye', 'bye.', 'bye bye', 'ok', 'okay',
+  'mm', 'hmm', 'uh', 'um', 'ah', '.', '..', '...',
+  '[music]', '[applause]', '[laughter]', '[blank_audio]',
+]);
+
+async function transcribeAudio(blob) {
+  if (!getToken()) return;
+  try {
+    const form = new FormData();
+    form.append('file', blob, 'audio.webm');
+    form.append('model', 'whisper-large-v3-turbo');
+    form.append('response_format', 'json');
+    form.append('language', 'en');
+    const res = await authFetch('/ai/transcribe', { method: 'POST', body: form });
+    if (!res.ok) return;
+    const data = await res.json();
+    const text = (data.text || '').trim();
+    if (!text || text.length < 4 || WHISPER_HALLUCINATIONS.has(text.toLowerCase())) return;
+    transcript += '[Speaker] ' + text + ' ';
+    updateWC();
+    setStatus(`🔊 "${text.slice(0, 55)}${text.length > 55 ? '…' : ''}"`);
+  } catch(e) {}
+}
+
+// ── Screenshot ────────────────────────────────────────────────
+ssBtn.addEventListener('click', takeScreenshot);
+
+async function takeScreenshot() {
+  ssBtn.disabled = true; ssBtn.textContent = '⏳';
+  try {
+    const b64 = await ipcRenderer.invoke('capture-screenshot');
+    if (b64) {
+      screenshot = b64;
+      ssThumb.src = 'data:image/jpeg;base64,' + b64;
+      ssb.style.display = 'flex';
+      setStatus('Screenshot attached · Ctrl+S to analyze');
+      resize();
+    } else {
+      setStatus('Screenshot failed — check Windows screen capture permissions');
+    }
+  } catch(e) { setStatus('Screenshot error: ' + e.message); }
+  finally { ssBtn.disabled = false; ssBtn.textContent = '📸'; }
+}
+
+clearSsBtn.addEventListener('click', () => {
+  screenshot = null;
+  ssb.style.display = 'none';
+  setStatus(micOn ? 'Listening · Ctrl+S to ask' : 'Ctrl+S to ask AI');
+  resize();
+});
+
+// ── Ask AI ────────────────────────────────────────────────────
+async function askAI() {
+  if (busy) return;
+  if (!getToken()) { setStatus('Sign in to use AI'); return; }
+  if (!transcript.trim() && !screenshot) {
+    setStatus('Start mic (Ctrl+Shift+M) first, then press Ctrl+S');
+    return;
+  }
+
+  // Flush whatever's in the current mic buffer before asking
+  if (micOn && micRecorder && micRecorder.state === 'recording') {
+    setStatus('Transcribing…');
+    if (micChunkInterval) { clearInterval(micChunkInterval); micChunkInterval = null; }
+    await new Promise(resolve => {
+      micAskCallback = resolve;
+      micRecorder.stop(); // onstop → transcribeMic → resolves → recorder restarts
+    });
+    // Restart the live-display interval
+    micChunkInterval = setInterval(() => {
+      if (micRecorder && micRecorder.state === 'recording' && !micAskCallback) {
+        micRecorder.stop();
+      }
+    }, 4000);
+  }
+
+  const newChunk = transcript.slice(lastSent.length).trim();
+
+  // Nothing new to send — don't call AI
+  if (!newChunk && !screenshot) {
+    setStatus('Nothing new yet · keep speaking then Ctrl+S');
+    return;
+  }
+
+  busy = true;
+  setDot('thinking');
+
+  if (newChunk) { addYou(newChunk); lastSent = transcript; }
+  else { addYou('📸 Screenshot'); }
+
+  const msgEl = addStreaming();
+  setStatus('Thinking...');
+
+  try {
+    if (screenshot) {
+      const ans = await visionBackend(newChunk, screenshot);
+      finishMsg(msgEl, ans);
+      autoCopy(ans);
+    } else {
+      await streamBackend(newChunk, msgEl);
+    }
+    setStatus('Done · Ctrl+S to ask again');
+    loadCredits(); // refresh balance after each AI call
+  } catch(e) {
+    if (e.message === 'NO_CREDITS') {
+      errorMsg(msgEl, 'No credits left. Buy more via ⚙ settings.');
+      setStatus('Out of credits · buy more via ⚙');
+    } else {
+      errorMsg(msgEl, e.message);
+      setStatus('Error: ' + e.message);
+    }
+  }
+
+  busy = false;
+  setDot(micOn ? 'live' : 'idle');
+  trimChat();
+  resize();
+}
+
+function buildSystemPrompt() {
+  const custom = (localStorage.getItem('custom_prompt') || '').trim();
+  const base = 'You are a real-time meeting assistant. Based on the transcript, suggest a natural, confident response the user can say next. Be concise — 2-4 sentences, no preamble or meta-commentary.';
+  return custom ? base + '\n\nAdditional instructions: ' + custom : base;
+}
+
+async function streamBackend(text, msgEl) {
+  const textEl = msgEl.querySelector('.mt');
+  const res = await authFetch('/ai/ask', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messages: [
+        { role: 'system', content: buildSystemPrompt() },
+        { role: 'user',   content: 'Meeting transcript:\n' + text }
+      ],
+      max_tokens: 400, temperature: 0.65
+    })
+  });
+
+  if (res.status === 402) throw new Error('NO_CREDITS');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'API error ' + res.status);
+  }
+
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '', full = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split('\n'); buf = lines.pop();
+    for (const line of lines) {
+      const t = line.trim();
+      if (!t || t === 'data: [DONE]') continue;
+      if (t.startsWith('data: ')) {
+        try {
+          const delta = JSON.parse(t.slice(6)).choices?.[0]?.delta?.content;
+          if (delta) { full += delta; textEl.textContent = full; scrollBottom(); resize(); }
+        } catch(e) {}
+      }
+    }
+  }
+
+  finishMsg(msgEl, full);
+  autoCopy(full);
+}
+
+async function visionBackend(text, b64) {
+  const custom = (localStorage.getItem('custom_prompt') || '').trim();
+  const sysBase = 'You are a meeting assistant. Analyze the screenshot and provide a helpful, actionable response. Be concise.';
+  const system  = custom ? sysBase + '\n\nAdditional instructions: ' + custom : sysBase;
+
+  const res = await authFetch('/ai/vision', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: [
+          { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + b64 } },
+          { type: 'text', text: text
+              ? 'Meeting transcript:\n' + text + '\n\nAnalyze the screenshot and suggest a helpful response.'
+              : 'Analyze this screenshot and give a helpful, actionable response.' }
+        ]}
+      ],
+      max_tokens: 500, temperature: 0.65
+    })
+  });
+
+  if (res.status === 402) throw new Error('NO_CREDITS');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'API error ' + res.status);
+  }
+  const d = await res.json();
+  return d.choices?.[0]?.message?.content?.trim() || 'No response.';
+}
+
+// ── Clear chat ────────────────────────────────────────────────
+$('clearBtn').addEventListener('click', clearChat);
+
+function clearChat() {
+  liveEl = null;
+  chat.innerHTML = '<div class="empty" id="emptyEl"><kbd>Ctrl+Shift+M</kbd> mic &nbsp;·&nbsp; <kbd>Ctrl+Shift+A</kbd> speaker<br/><kbd>Ctrl+Shift+S</kbd> screenshot &nbsp;·&nbsp; <kbd>Ctrl+S</kbd> ask AI</div>';
+  transcript = '';
+  lastSent   = '';
+  screenshot = null;
+  ssb.style.display = 'none';
+  setStatus('Chat cleared · Ctrl+Shift+M to start mic');
+  updateWC();
+  resize();
+}
+
+// ── Message builders ──────────────────────────────────────────
+function clearEmpty() {
+  const el = chat.querySelector('.empty');
+  if (el) el.remove();
+}
+
+function scrollBottom() {
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function addYou(text) {
+  // Reuse the live transcript bubble if it exists
+  if (liveEl) {
+    liveEl.className = 'msg you';
+    liveEl.querySelector('.ml').innerHTML = 'You';
+    const mt = liveEl.querySelector('.mt');
+    mt.textContent = text;
+    mt.style.fontStyle = '';
+    const el = liveEl;
+    liveEl = null;
+    scrollBottom(); resize();
+    return el;
+  }
+  clearEmpty();
+  const el = document.createElement('div');
+  el.className = 'msg you';
+  const ml = document.createElement('div'); ml.className = 'ml'; ml.textContent = 'You';
+  const mt = document.createElement('div'); mt.className = 'mt'; mt.textContent = text;
+  el.appendChild(ml); el.appendChild(mt);
+  chat.appendChild(el);
+  scrollBottom(); resize();
+  return el;
+}
+
+function addStreaming() {
+  clearEmpty();
+  const el = document.createElement('div');
+  el.className = 'msg streaming';
+  const ml = document.createElement('div'); ml.className = 'ml'; ml.textContent = 'Assistant';
+  const mt = document.createElement('div'); mt.className = 'mt cursor';
+  el.appendChild(ml); el.appendChild(mt);
+  chat.appendChild(el);
+  scrollBottom(); resize();
+  return el;
+}
+
+function finishMsg(el, text) {
+  el.className = 'msg ai';
+  const mt = el.querySelector('.mt');
+  mt.className = 'mt markdown';
+  mt.innerHTML = marked.parse(text);   // render markdown + syntax-highlighted code
+  const ml = el.querySelector('.ml');
+  const btn = document.createElement('button');
+  btn.className = 'cp'; btn.textContent = '⎘ copy';
+  btn.addEventListener('click', () => {
+    navigator.clipboard.writeText(text).catch(() => {});  // copy raw text
+    btn.textContent = '✓';
+    setTimeout(() => { btn.textContent = '⎘ copy'; }, 1500);
+  });
+  ml.appendChild(btn);
+  scrollBottom(); resize();
+}
+
+function errorMsg(el, text) {
+  el.className = 'msg error';
+  el.querySelector('.ml').textContent = 'Error';
+  const mt = el.querySelector('.mt'); mt.className = 'mt'; mt.textContent = text;
+  scrollBottom(); resize();
+}
+
+function trimChat(max = 10) {
+  const msgs = [...chat.querySelectorAll('.msg')];
+  for (let i = 0; i < msgs.length - max; i++) msgs[i].remove();
+}
+
+function autoCopy(text) {
+  if (text) navigator.clipboard.writeText(text).catch(() => {});
+}
+
+// ── Utilities ─────────────────────────────────────────────────
+function setDot(s) { dot.className = 'dot' + (s === 'idle' ? '' : ' ' + s); }
+function setStatus(m) { statusEl.textContent = m; }
+function updateWC() {
+  const n = transcript.trim().split(/\s+/).filter(Boolean).length;
+  wcEl.textContent = n > 0 ? n + 'w' : '';
+}
+function startTimer() {
+  if (timerTick) return;
+  sessionStart = Date.now();
+  timerEl.style.display = 'inline';
+  timerTick = setInterval(() => {
+    const s = Math.floor((Date.now() - sessionStart) / 1000);
+    timerEl.textContent = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  }, 1000);
+}
+
+let resizeRaf;
+function resize() {
+  if (resizeRaf) cancelAnimationFrame(resizeRaf);
+  resizeRaf = requestAnimationFrame(() => {
+    const el = $('app').style.display !== 'none' ? $('app') : $('loginApp');
+    ipcRenderer.send('resize', el.scrollHeight + 2);
+  });
+}
+
+function resizeLogin() {
+  requestAnimationFrame(() => {
+    ipcRenderer.send('resize', $('loginApp').scrollHeight + 2);
+  });
+}
+
+resize();
+</script>
+</body>
+</html>
