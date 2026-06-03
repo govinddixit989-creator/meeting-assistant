@@ -15,9 +15,10 @@
   },
   "build": {
     "appId": "com.meeting.assistant",
-    "productName": "MeetingAssistant",
+    "productName": "MeetAssist",
     "win": {
-      "target": "portable"
+      "target": "portable",
+      "artifactName": "MeetAssist.exe"
     }
   },
   "dependencies": {
