@@ -1,17 +1,12 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD, // Gmail App Password (not your login password)
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM   = process.env.RESEND_FROM || 'MeetAssist <onboarding@resend.dev>';
 
 async function sendAccessCode(toEmail, code) {
-  const mail = {
-    from: `"MeetAssist" <${process.env.GMAIL_USER}>`,
-    to: toEmail,
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to:   toEmail,
     subject: 'Your MeetAssist Lifetime Access Code',
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0D1117;color:#F0F2F5;padding:32px;border-radius:12px">
@@ -40,9 +35,9 @@ async function sendAccessCode(toEmail, code) {
         </p>
       </div>
     `,
-  };
+  });
 
-  await transporter.sendMail(mail);
+  if (error) throw new Error(error.message);
 }
 
 module.exports = { sendAccessCode };
