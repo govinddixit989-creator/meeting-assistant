@@ -1063,15 +1063,18 @@ footer{
   <div class="modal">
     <button class="modal-close" id="modalClose">✕</button>
 
-    <!-- Step 1: Enter code -->
+    <!-- Step 1: Enter email + code -->
     <div class="modal-step active" id="step1">
       <div class="dl-icon" style="font-size:36px;margin-bottom:12px">🔑</div>
-      <h3 style="text-align:center">Enter your access code</h3>
-      <p class="modal-sub" style="text-align:center;margin:8px 0 20px">You received this code after purchase. It's a one-time use code.</p>
+      <h3 style="text-align:center">Enter your access details</h3>
+      <p class="modal-sub" style="text-align:center;margin:8px 0 20px">Use the email you purchased with and the code we sent you.</p>
+      <input class="modal-input" type="email" id="codeEmail"
+        placeholder="Your purchase email"
+        autocomplete="off" spellcheck="false"/>
       <input class="modal-input" type="text" id="codeInput"
-        placeholder="e.g. MEET-ABC123"
+        placeholder="Access code  e.g. MEET-ABC123"
         autocomplete="off" spellcheck="false"
-        style="text-align:center;font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase"/>
+        style="text-align:center;font-size:15px;font-weight:700;letter-spacing:.08em;text-transform:uppercase"/>
       <div class="modal-err" id="codeErr"></div>
       <button class="modal-btn" id="codeBtn">Unlock Download →</button>
     </div>
@@ -1151,12 +1154,13 @@ function showStep(n) {
 }
 
 function openModal() {
+  document.getElementById('codeEmail').value = '';
   document.getElementById('codeInput').value = '';
   document.getElementById('codeErr').textContent = '';
   showStep(1);
   backdrop.classList.add('open');
   document.body.style.overflow = 'hidden';
-  setTimeout(() => document.getElementById('codeInput').focus(), 100);
+  setTimeout(() => document.getElementById('codeEmail').focus(), 100);
 }
 
 function closeModal() {
@@ -1275,12 +1279,14 @@ document.getElementById('codeInput').addEventListener('keydown', e => {
 
 // Validate code
 document.getElementById('codeBtn').addEventListener('click', async () => {
+  const email  = document.getElementById('codeEmail').value.trim();
   const code   = document.getElementById('codeInput').value.trim().toUpperCase();
   const errEl  = document.getElementById('codeErr');
   const btn    = document.getElementById('codeBtn');
   errEl.textContent = '';
 
-  if (!code) { errEl.textContent = 'Please enter your access code.'; return; }
+  if (!email) { errEl.textContent = 'Please enter your email address.'; return; }
+  if (!code)  { errEl.textContent = 'Please enter your access code.'; return; }
 
   btn.disabled = true; btn.textContent = 'Verifying…';
 
@@ -1288,12 +1294,11 @@ document.getElementById('codeBtn').addEventListener('click', async () => {
     const res = await fetch(API + '/codes/validate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code })
+      body: JSON.stringify({ email, code })
     });
     const d = await res.json();
-    if (!res.ok) { errEl.textContent = d.error || 'Invalid code. Please try again.'; return; }
+    if (!res.ok) { errEl.textContent = d.error || 'Invalid details. Please try again.'; return; }
 
-    // Valid — update download link and show success screen
     document.getElementById('dlLink').href = d.download_url;
     showStep(2);
   } catch(e) {
