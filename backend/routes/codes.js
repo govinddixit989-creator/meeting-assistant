@@ -74,4 +74,23 @@ router.post('/validate', async (req, res) => {
   res.json({ valid: true, download_url: DOWNLOAD_URL });
 });
 
+// POST /codes/verify  — validates email+code without marking used (for app activation)
+router.post('/verify', async (req, res) => {
+  const code  = (req.body.code  || '').trim().toUpperCase();
+  const email = (req.body.email || '').trim().toLowerCase();
+
+  if (!code || !email) return res.status(400).json({ error: 'Email and access code are required' });
+
+  const { data, error } = await supabase
+    .from('referral_codes')
+    .select('*')
+    .eq('code', code)
+    .single();
+
+  if (error || !data)                     return res.status(404).json({ error: 'Invalid access code' });
+  if (data.email.toLowerCase() !== email) return res.status(403).json({ error: 'This code was issued to a different email address' });
+
+  res.json({ valid: true });
+});
+
 module.exports = router;

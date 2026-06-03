@@ -347,13 +347,10 @@ input[type=range]::-webkit-slider-thumb{
       <div class="setup-wrap">
         <div class="setup-icon">🔑</div>
         <div class="setup-title">Lifetime License Setup</div>
-        <div class="setup-sub">Enter your API key to activate your lifetime access. You can find it in your account dashboard at the AI provider.</div>
-        <div class="setup-steps">
-          <div class="setup-step"><span class="setup-step-num">1</span><span>Sign up at the AI provider and create a free API key</span></div>
-          <div class="setup-step"><span class="setup-step-num">2</span><span>Paste your key below</span></div>
-          <div class="setup-step"><span class="setup-step-num">3</span><span>Start using MeetAssist — all AI runs directly from your key</span></div>
-        </div>
-        <input class="login-input" type="password" id="ownKeyInput" placeholder="Paste your API key here" autocomplete="off" spellcheck="false"/>
+        <div class="setup-sub">Enter the email you purchased with, your access code, and your Groq API key.</div>
+        <input class="login-input" type="email" id="ownKeyEmail" placeholder="Purchase email" autocomplete="off" spellcheck="false"/>
+        <input class="login-input" type="text" id="ownKeyCode" placeholder="Access code  e.g. LIFE-XXXX-XXXX" autocomplete="off" spellcheck="false" style="text-transform:uppercase;letter-spacing:.06em;font-weight:700"/>
+        <input class="login-input" type="password" id="ownKeyInput" placeholder="Groq API key (gsk_…)" autocomplete="off" spellcheck="false"/>
         <div class="login-err" id="ownKeyErr"></div>
         <button class="login-btn" style="background:linear-gradient(135deg,#FBBF24,#D97706);color:#000" id="ownKeyBtn">Activate →</button>
         <div class="login-switch" style="margin-top:8px"><a href="#" id="backToLogin">← Back to sign in</a></div>
@@ -533,6 +530,8 @@ function logout() {
   localStorage.removeItem('ma_refresh');
   localStorage.removeItem('ma_email');
   localStorage.removeItem('own_api_key');
+  localStorage.removeItem('own_key_email');
+  localStorage.removeItem('own_key_code');
   appMode = null;
   stopMic(); stopSys();
   $('app').style.display = 'none';
@@ -625,11 +624,37 @@ $('backToLogin').addEventListener('click', e => {
   $('loginForm').style.display = 'block';
   resizeLogin();
 });
-$('ownKeyBtn').addEventListener('click', () => {
-  const key = $('ownKeyInput').value.trim();
-  if (!key) { $('ownKeyErr').textContent = 'Please paste your API key'; return; }
-  localStorage.setItem('own_api_key', key);
-  showApp('lifetime');
+$('ownKeyCode').addEventListener('input', function() { this.value = this.value.toUpperCase(); });
+
+$('ownKeyBtn').addEventListener('click', async () => {
+  const email = $('ownKeyEmail').value.trim();
+  const code  = $('ownKeyCode').value.trim().toUpperCase();
+  const key   = $('ownKeyInput').value.trim();
+  const errEl = $('ownKeyErr');
+  errEl.textContent = '';
+  if (!email) { errEl.textContent = 'Enter your purchase email'; return; }
+  if (!code)  { errEl.textContent = 'Enter your access code'; return; }
+  if (!key)   { errEl.textContent = 'Enter your Groq API key'; return; }
+
+  const btn = $('ownKeyBtn');
+  btn.disabled = true; btn.textContent = 'Verifying…';
+  try {
+    const res = await fetch(API + '/codes/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code })
+    });
+    const d = await res.json();
+    if (!res.ok) { errEl.textContent = d.error || 'Invalid details'; return; }
+    localStorage.setItem('own_api_key', key);
+    localStorage.setItem('own_key_email', email);
+    localStorage.setItem('own_key_code', code);
+    showApp('lifetime');
+  } catch(e) {
+    errEl.textContent = 'Cannot reach server. Check your connection.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Activate →';
+  }
 });
 $('ltApiKey').addEventListener('change', () => {
   localStorage.setItem('own_api_key', $('ltApiKey').value.trim());
