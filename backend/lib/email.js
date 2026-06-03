@@ -12,7 +12,7 @@ const transporter = nodemailer.createTransport({
 
 async function sendAccessCode(toEmail, code) {
   await transporter.sendMail({
-    from:    `"MeetAssist" <${process.env.BREVO_USER}>`,
+    from:    `"MeetAssist" <${process.env.BREVO_FROM || 'govinddixit989@gmail.com'}>`,
     to:      toEmail,
     subject: 'Your MeetAssist Lifetime Access Code',
     html: `
