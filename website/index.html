@@ -1035,6 +1035,7 @@ footer{
       <div class="pay-note">⚠️ Use <strong id="cRefEmail"></strong> as the payment reference.</div>
       <hr class="pay-divider"/>
       <button class="modal-btn" id="cs2Btn">I've sent the payment →</button>
+      <div id="cs2Err" style="color:#F87171;font-size:13px;margin-top:10px;text-align:center;min-height:18px"></div>
     </div>
 
     <!-- Step 3a: Credits waiting (polling) -->
@@ -1282,11 +1283,29 @@ document.getElementById('cs1Btn').addEventListener('click', async () => {
 });
 
 let currentCPlan = 'standard';
-document.getElementById('cs2Btn').addEventListener('click', () => {
+document.getElementById('cs2Btn').addEventListener('click', async () => {
   if (PLANS[currentCPlan]?.lifetime) {
-    // Lifetime — show "code will be emailed" screen, no polling needed
-    document.getElementById('cLifetimeEmail').textContent = cEmail;
-    showCStep('3b');
+    const btn   = document.getElementById('cs2Btn');
+    const errEl = document.getElementById('cs2Err');
+    if (errEl) errEl.textContent = '';
+    btn.disabled = true; btn.textContent = 'Sending your code…';
+    try {
+      const res = await fetch(API + '/codes/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cToken },
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        if (errEl) errEl.textContent = d.error || 'Failed to send code. Please try again.';
+        return;
+      }
+      document.getElementById('cLifetimeEmail').textContent = cEmail;
+      showCStep('3b');
+    } catch (e) {
+      if (errEl) errEl.textContent = 'Cannot reach server. Please try again.';
+    } finally {
+      btn.disabled = false; btn.textContent = 'I\'ve paid — send my code →';
+    }
   } else {
     showCStep(3);
     startCPolling();

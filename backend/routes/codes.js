@@ -1,6 +1,7 @@
-const router  = require('express').Router();
-const supabase = require('../lib/supabase');
+const router      = require('express').Router();
+const supabase    = require('../lib/supabase');
 const { sendAccessCode } = require('../lib/email');
+const requireAuth = require('../middleware/auth');
 
 const DOWNLOAD_URL = 'https://github.com/govinddixit989-creator/meeting-assistant/releases/latest/download/MeetAssist.exe';
 
@@ -110,6 +111,41 @@ router.post('/verify', async (req, res) => {
   if (data.email.toLowerCase() !== email) return res.status(403).json({ error: 'This code was issued to a different email address' });
 
   res.json({ valid: true });
+});
+
+// POST /codes/request  — authenticated user requests their lifetime access code
+// Generates a new code if none exists, then emails it
+router.post('/request', requireAuth, async (req, res) => {
+  const email = req.user.email.toLowerCase();
+
+  // Reuse existing unused code if one already exists
+  const { data: existing } = await supabase
+    .from('referral_codes')
+    .select('code')
+    .eq('email', email)
+    .eq('used', false)
+    .single();
+
+  const code = existing?.code ?? generateCode();
+
+  if (!existing) {
+    const { error: insertErr } = await supabase
+      .from('referral_codes')
+      .insert({ code, email, user_id: req.user.id });
+    if (insertErr) {
+      console.error('referral_codes insert on request failed:', insertErr.message);
+      return res.status(500).json({ error: 'Failed to generate code. Please try again.' });
+    }
+  }
+
+  try {
+    await sendAccessCode(email, code);
+  } catch (e) {
+    console.error('sendAccessCode on request failed:', e.message);
+    return res.status(500).json({ error: 'Code saved but email failed. Please contact support.' });
+  }
+
+  res.json({ ok: true });
 });
 
 module.exports = router;
