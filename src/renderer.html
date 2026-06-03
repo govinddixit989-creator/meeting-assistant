@@ -328,9 +328,7 @@ input[type=range]::-webkit-slider-thumb{
       <div class="login-err" id="loginErr"></div>
       <button class="login-btn" id="loginBtn">Sign in</button>
       <div class="login-switch">No account? <a href="#" id="showRegister">Create one free</a></div>
-      <div class="login-switch" style="margin-top:6px">
-        Have a lifetime license? <a href="#" id="showApiKey">Use your own API key →</a>
-      </div>
+      <button class="login-btn" id="showApiKeyBtn" style="margin-top:8px;background:linear-gradient(135deg,#FBBF24,#D97706);color:#000;font-weight:700">⭐ Have a lifetime license? Activate →</button>
     </div>
 
     <!-- Register form -->
@@ -388,6 +386,12 @@ input[type=range]::-webkit-slider-thumb{
         <button class="btn-small" id="buyBtn">+ Buy credits</button>
         <button class="btn-small btn-logout" id="logoutBtn">Sign out</button>
       </div>
+    </div>
+
+    <!-- Lifetime upgrade row (shown in subscription mode) -->
+    <div class="sp-row" id="ltUpgradeRow">
+      <div class="sp-lbl">Have a lifetime license?</div>
+      <button class="login-btn" id="switchToLifetimeBtn" style="margin-top:6px;background:linear-gradient(135deg,#FBBF24,#D97706);color:#000;font-size:11px;padding:7px 12px;font-weight:700;border-radius:6px;border:none;cursor:pointer;width:100%">⭐ Activate lifetime — enter code + API key</button>
     </div>
 
     <!-- Lifetime mode header -->
@@ -612,7 +616,7 @@ $('loginBtn').addEventListener('click', async () => {
 });
 
 // ── Own API key (lifetime) form ───────────────────────────────
-$('showApiKey').addEventListener('click', e => {
+$('showApiKeyBtn').addEventListener('click', e => {
   e.preventDefault();
   $('loginForm').style.display = 'none';
   $('apiKeyForm').style.display = 'block';
@@ -658,6 +662,22 @@ $('ownKeyBtn').addEventListener('click', async () => {
 });
 $('ltApiKey').addEventListener('change', () => {
   localStorage.setItem('own_api_key', $('ltApiKey').value.trim());
+});
+
+$('switchToLifetimeBtn').addEventListener('click', () => {
+  // Clear subscription session and open lifetime activation form
+  localStorage.removeItem('ma_token');
+  localStorage.removeItem('ma_refresh');
+  localStorage.removeItem('ma_email');
+  appMode = null;
+  stopMic(); stopSys();
+  sp.style.display = 'none';
+  $('app').style.display = 'none';
+  $('loginApp').style.display = 'block';
+  $('loginForm').style.display = 'none';
+  $('registerForm').style.display = 'none';
+  $('apiKeyForm').style.display = 'block';
+  resizeLogin();
 });
 $('ltLogoutBtn').addEventListener('click', logout);
 
