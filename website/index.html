@@ -1136,6 +1136,12 @@ const API = window.location.hostname === 'localhost' || window.location.hostname
   ? 'http://localhost:3001'
   : 'https://meeting-assistant-backend-ten.vercel.app';
 
+// Always open from top — clear any #hash from URL
+if (window.location.hash) {
+  history.replaceState(null, '', window.location.pathname);
+  window.scrollTo(0, 0);
+}
+
 // ── Scroll fade-in ────────────────────────────────────────────
 const observer = new IntersectionObserver(entries => {
   entries.forEach(e => {

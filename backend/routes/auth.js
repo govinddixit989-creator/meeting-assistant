@@ -12,10 +12,21 @@ router.post('/register', async (req, res) => {
     email, password, email_confirm: true,
   });
   if (createErr) {
-    // If email already exists in auth, give a clear message
     const msg = createErr.message.toLowerCase();
     if (msg.includes('already') || msg.includes('exists')) {
-      return res.status(400).json({ error: 'This email is already registered. Please sign in instead.' });
+      // Auth user exists — try signing in with provided password
+      const { data: session, error: signErr } = await supabase.auth.signInWithPassword({ email, password });
+      if (signErr) {
+        // Wrong password for existing account
+        return res.status(400).json({ error: 'This email is already registered. Please sign in with your existing password.' });
+      }
+      // Sign in worked — ensure profile row exists
+      await supabase.from('users').upsert({ id: session.user.id, email, credits: 0 }, { onConflict: 'id', ignoreDuplicates: true });
+      return res.json({
+        token: session.session.access_token,
+        refresh_token: session.session.refresh_token,
+        user: { id: session.user.id, email },
+      });
     }
     return res.status(400).json({ error: createErr.message });
   }
