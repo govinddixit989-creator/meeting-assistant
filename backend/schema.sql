@@ -17,19 +17,23 @@ CREATE TABLE public.usage_logs (
   created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Stripe payment sessions
-CREATE TABLE public.stripe_sessions (
+-- Lifetime access codes (admin-issued, tied to buyer email)
+-- user_id is populated when the code is redeemed or when the buyer registers
+CREATE TABLE public.referral_codes (
   id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id    UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
-  session_id TEXT UNIQUE NOT NULL,
-  amount     INTEGER,
-  credits    INTEGER NOT NULL,
-  plan       TEXT NOT NULL,
-  status     TEXT DEFAULT 'pending',
+  code       TEXT UNIQUE NOT NULL,
+  email      TEXT NOT NULL,
+  user_id    UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  used       BOOLEAN NOT NULL DEFAULT false,
+  used_at    TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- RLS (backend uses service key so it bypasses these, but good practice)
-ALTER TABLE public.users         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.usage_logs    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.stripe_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.users          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.usage_logs     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.referral_codes ENABLE ROW LEVEL SECURITY;
+
+-- Migration: add user_id FK to existing referral_codes tables (safe to run on already-migrated tables)
+ALTER TABLE public.referral_codes
+  ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.users(id) ON DELETE SET NULL;

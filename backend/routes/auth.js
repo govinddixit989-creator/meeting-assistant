@@ -21,7 +21,8 @@ router.post('/register', async (req, res) => {
         return res.status(400).json({ error: 'This email is already registered. Please sign in with your existing password.' });
       }
       // Sign in worked — ensure profile row exists
-      await supabase.from('users').upsert({ id: session.user.id, email, credits: 0 }, { onConflict: 'id', ignoreDuplicates: true });
+      const { error: upsertErr } = await supabase.from('users').upsert({ id: session.user.id, email, credits: 0 }, { onConflict: 'id', ignoreDuplicates: true });
+      if (upsertErr) console.error('users upsert on existing-account login failed:', upsertErr.message);
       return res.json({
         token: session.session.access_token,
         refresh_token: session.session.refresh_token,
@@ -37,6 +38,14 @@ router.post('/register', async (req, res) => {
     console.error('users insert failed:', insertErr.message);
     return res.status(500).json({ error: 'Account created but profile setup failed: ' + insertErr.message + '. Have you run schema.sql in Supabase?' });
   }
+
+  // Link any existing referral code for this email to the new user
+  const { error: linkErr } = await supabase
+    .from('referral_codes')
+    .update({ user_id: created.user.id })
+    .eq('email', email.toLowerCase())
+    .is('user_id', null);
+  if (linkErr) console.error('referral_codes link on register failed:', linkErr.message);
 
   // Sign in immediately to return a session
   const { data: session, error: signErr } = await supabase.auth.signInWithPassword({ email, password });

@@ -39,7 +39,10 @@ router.post('/send', async (req, res) => {
     .from('referral_codes')
     .insert({ code, email: email.toLowerCase() });
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) {
+    console.error('referral_codes insert failed:', error.message);
+    return res.status(500).json({ error: error.message });
+  }
 
   // Send email
   try { await sendAccessCode(email, code); }
@@ -61,15 +64,28 @@ router.post('/validate', async (req, res) => {
     .eq('code', code)
     .single();
 
-  if (error || !data)                              return res.status(404).json({ error: 'Invalid access code' });
+  if (error || !data) {
+    if (error && error.code !== 'PGRST116') console.error('referral_codes lookup failed:', error?.message);
+    return res.status(404).json({ error: 'Invalid access code' });
+  }
   if (data.email.toLowerCase() !== email)          return res.status(403).json({ error: 'This code was issued to a different email address' });
   if (data.used)                                   return res.status(400).json({ error: 'This code has already been used' });
 
-  // Mark as used
-  await supabase
+  // Mark as used and link to user account if one exists for this email
+  const { data: user, error: userLookupErr } = await supabase
+    .from('users')
+    .select('id')
+    .eq('email', email)
+    .single();
+  if (userLookupErr && userLookupErr.code !== 'PGRST116') {
+    console.error('users lookup on validate failed:', userLookupErr.message);
+  }
+
+  const { error: markUsedErr } = await supabase
     .from('referral_codes')
-    .update({ used: true, used_at: new Date().toISOString() })
+    .update({ used: true, used_at: new Date().toISOString(), user_id: user?.id || null })
     .eq('code', code);
+  if (markUsedErr) console.error('referral_codes mark-used failed:', markUsedErr.message);
 
   res.json({ valid: true, download_url: DOWNLOAD_URL });
 });
@@ -87,7 +103,10 @@ router.post('/verify', async (req, res) => {
     .eq('code', code)
     .single();
 
-  if (error || !data)                     return res.status(404).json({ error: 'Invalid access code' });
+  if (error || !data) {
+    if (error && error.code !== 'PGRST116') console.error('referral_codes verify lookup failed:', error?.message);
+    return res.status(404).json({ error: 'Invalid access code' });
+  }
   if (data.email.toLowerCase() !== email) return res.status(403).json({ error: 'This code was issued to a different email address' });
 
   res.json({ valid: true });
