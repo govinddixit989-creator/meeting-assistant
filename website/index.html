@@ -554,7 +554,7 @@ footer{
   </div>
   <div class="nav-cta">
     <a href="#pricing" class="btn btn-ghost">View Plans</a>
-    <button class="btn btn-primary" data-plan="standard">Get Started ↓</button>
+    <a href="#pricing" class="btn btn-primary">Get Started ↓</a>
   </div>
 </nav>
 
@@ -576,7 +576,7 @@ footer{
     </p>
 
     <div class="hero-ctas">
-      <button class="btn btn-primary btn-lg" data-plan="standard">Get Started ↓</button>
+      <a href="#pricing" class="btn btn-primary btn-lg">See Plans ↓</a>
       <a href="#how" class="btn btn-ghost btn-lg">See how it works →</a>
     </div>
 
@@ -936,10 +936,13 @@ footer{
           <li>All future updates included</li>
           <li>Use your own API key</li>
         </ul>
-        <button class="btn plan-btn" data-modal="code"
+        <button class="btn plan-btn" data-plan="lifetime"
           style="width:100%;justify-content:center;background:linear-gradient(135deg,#FBBF24,#D97706);color:#000;font-weight:700;border:none;border-radius:8px;padding:9px 20px;cursor:pointer;font-size:14px">
-          Enter Access Code
+          Get Lifetime Access — $50
         </button>
+        <p style="text-align:center;margin-top:12px;font-size:11px;color:rgba(240,242,245,.35)">
+          Already have a code? <a href="#" id="openCodeModal" style="color:rgba(251,191,36,.7);text-decoration:none">Enter it here →</a>
+        </p>
       </div>
 
     </div>
@@ -957,7 +960,7 @@ footer{
     <h2>Stop fumbling in meetings.<br/>Start sounding brilliant.</h2>
     <p>Sign up in 30 seconds, pick a credit pack, and you're live. Credits never expire — use them at your own pace.</p>
     <div class="cta-btns">
-      <button class="btn btn-primary btn-lg" data-plan="starter">Get Started — from $5 ↓</button>
+      <a href="#pricing" class="btn btn-primary btn-lg">Get Started — from $5 ↓</a>
       <a href="#compare" class="btn btn-ghost btn-lg">See full comparison →</a>
     </div>
   </div>
@@ -1032,6 +1035,7 @@ footer{
       <button class="modal-btn" id="cs2Btn">I've sent the payment →</button>
     </div>
 
+    <!-- Step 3a: Credits waiting (polling) -->
     <div class="modal-step" id="cs3">
       <div style="padding:8px 0">
         <div class="wait-icon"></div>
@@ -1047,6 +1051,22 @@ footer{
       </div>
     </div>
 
+    <!-- Step 3b: Lifetime — code will be emailed -->
+    <div class="modal-step" id="cs3b">
+      <div style="padding:8px 0">
+        <div class="dl-icon" style="font-size:40px;margin-bottom:14px">📧</div>
+        <div class="wait-title">Payment received!</div>
+        <div class="wait-sub" style="margin-bottom:16px">We'll review your payment and email your unique access code to:</div>
+        <div class="wait-email-box" id="cLifetimeEmail"></div>
+        <div class="wait-sub" style="margin-top:16px;font-size:11px">Usually within a few hours. Check your spam folder too.</div>
+        <div class="wait-pulse" style="margin-top:16px">
+          <span class="wait-pulse-dot" style="background:var(--am)"></span>
+          <span style="font-size:11px;color:rgba(240,242,245,.4)">Waiting for your code email…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Credits confirmed + download -->
     <div class="modal-step" id="cs4">
       <div class="dl-icon">🎉</div>
       <div class="dl-title">Payment confirmed!</div>
@@ -1177,17 +1197,20 @@ document.querySelectorAll('[data-plan]').forEach(btn => {
   btn.addEventListener('click', e => { e.preventDefault(); openCreditsModal(btn.dataset.plan); });
 });
 
-// Code modal — data-modal="code" buttons
+// Code modal — data-modal="code" buttons + "already have a code?" link
 document.querySelectorAll('[data-modal="code"]').forEach(btn => {
   btn.addEventListener('click', e => { e.preventDefault(); openModal(); });
 });
+const openCodeModalLink = document.getElementById('openCodeModal');
+if (openCodeModalLink) openCodeModalLink.addEventListener('click', e => { e.preventDefault(); openModal(); });
 
 // ── Credits modal ─────────────────────────────────────────────
 const creditsBackdrop = document.getElementById('creditsBackdrop');
 const PLANS = {
-  starter:  { label: 'Starter — $5',   amount: '5'  },
-  standard: { label: 'Standard — $15', amount: '15' },
-  pro:      { label: 'Pro — $30',      amount: '30' },
+  starter:  { label: 'Starter — $5',        amount: '5',  lifetime: false },
+  standard: { label: 'Standard — $15',       amount: '15', lifetime: false },
+  pro:      { label: 'Pro — $30',            amount: '30', lifetime: false },
+  lifetime: { label: '⭐ Lifetime — $50',    amount: '50', lifetime: true  },
 };
 let cToken = '', cEmail = '', cPollTimer = null;
 
@@ -1197,7 +1220,8 @@ function showCStep(n) {
 }
 
 function openCreditsModal(plan) {
-  const p = PLANS[plan] || PLANS.standard;
+  currentCPlan = plan || 'standard';
+  const p = PLANS[currentCPlan] || PLANS.standard;
   document.getElementById('cBadge').textContent  = p.label;
   document.getElementById('cs2Badge').textContent = p.label;
   document.getElementById('cAmount').textContent  = p.amount;
@@ -1246,7 +1270,17 @@ document.getElementById('cs1Btn').addEventListener('click', async () => {
   finally { btn.disabled = false; btn.textContent = 'Continue to payment →'; }
 });
 
-document.getElementById('cs2Btn').addEventListener('click', () => { showCStep(3); startCPolling(); });
+let currentCPlan = 'standard';
+document.getElementById('cs2Btn').addEventListener('click', () => {
+  if (PLANS[currentCPlan]?.lifetime) {
+    // Lifetime — show "code will be emailed" screen, no polling needed
+    document.getElementById('cLifetimeEmail').textContent = cEmail;
+    showCStep('3b');
+  } else {
+    showCStep(3);
+    startCPolling();
+  }
+});
 
 document.getElementById('cCheckBtn').addEventListener('click', checkCCredits);
 
