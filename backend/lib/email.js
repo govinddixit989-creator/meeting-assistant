@@ -25,7 +25,7 @@ async function sendAccessCode(toEmail, code) {
 
         <p style="color:rgba(240,242,245,.6);margin:0 0 8px"><strong style="color:#F0F2F5">How to use:</strong></p>
         <ol style="color:rgba(240,242,245,.6);padding-left:20px;margin:0 0 24px">
-          <li style="margin-bottom:6px">Go to <a href="https://meeting-assistant.vercel.app/#pricing" style="color:#10B981">meetassist.com</a></li>
+          <li style="margin-bottom:6px">Go to <a href="https://meeting-assistant-blush.vercel.app" style="color:#10B981">meeting-assistant-blush.vercel.app</a></li>
           <li style="margin-bottom:6px">Click <strong style="color:#F0F2F5">"Already have a code?"</strong></li>
           <li style="margin-bottom:6px">Enter <strong style="color:#F0F2F5">this email address</strong> + the code above</li>
           <li>Download and install MeetAssist</li>
