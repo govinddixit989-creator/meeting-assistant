@@ -275,6 +275,39 @@ input[type=range]::-webkit-slider-thumb{
 .btn-small:hover{background:var(--gb)}
 .btn-logout{border-color:var(--b2);background:transparent;color:var(--mu)}
 .btn-logout:hover{color:var(--rd);border-color:rgba(248,113,113,.35)}
+
+/* ── Lifetime badge in settings ─── */
+.lifetime-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:7px 12px;border-bottom:1px solid var(--b1);
+  background:rgba(251,191,36,.05);
+}
+.lifetime-badge{
+  font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--am);padding:2px 7px;border-radius:4px;
+  background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);
+}
+.sp input[type=text]{
+  width:100%;padding:6px 9px;
+  background:var(--s1);border:1px solid var(--b1);
+  border-radius:var(--r);color:var(--tx);font-size:11.5px;
+  font-family:var(--f);outline:none;
+}
+.sp input[type=text]:focus{border-color:var(--am);box-shadow:0 0 0 2px rgba(251,191,36,.1)}
+
+/* ── Key setup screen ─────────────── */
+.setup-wrap{padding:20px 16px;text-align:center}
+.setup-icon{font-size:32px;margin-bottom:10px}
+.setup-title{font-size:13px;font-weight:700;margin-bottom:6px}
+.setup-sub{font-size:11px;color:var(--mu);line-height:1.6;margin-bottom:14px}
+.setup-steps{text-align:left;margin-bottom:14px}
+.setup-step{display:flex;gap:10px;margin-bottom:8px;font-size:11px;color:var(--mu2)}
+.setup-step-num{
+  width:18px;height:18px;border-radius:50%;flex-shrink:0;
+  background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);
+  color:var(--am);font-size:9px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;margin-top:1px;
+}
 </style>
 </head>
 <body>
@@ -295,6 +328,9 @@ input[type=range]::-webkit-slider-thumb{
       <div class="login-err" id="loginErr"></div>
       <button class="login-btn" id="loginBtn">Sign in</button>
       <div class="login-switch">No account? <a href="#" id="showRegister">Create one free</a></div>
+      <div class="login-switch" style="margin-top:6px">
+        Have a lifetime license? <a href="#" id="showApiKey">Use your own API key →</a>
+      </div>
     </div>
 
     <!-- Register form -->
@@ -304,6 +340,24 @@ input[type=range]::-webkit-slider-thumb{
       <div class="login-err" id="regErr"></div>
       <button class="login-btn" id="regBtn">Create account</button>
       <div class="login-switch">Have an account? <a href="#" id="showLogin">Sign in</a></div>
+    </div>
+
+    <!-- Lifetime / own API key setup -->
+    <div id="apiKeyForm" style="display:none;width:100%">
+      <div class="setup-wrap">
+        <div class="setup-icon">🔑</div>
+        <div class="setup-title">Lifetime License Setup</div>
+        <div class="setup-sub">Enter your API key to activate your lifetime access. You can find it in your account dashboard at the AI provider.</div>
+        <div class="setup-steps">
+          <div class="setup-step"><span class="setup-step-num">1</span><span>Sign up at the AI provider and create a free API key</span></div>
+          <div class="setup-step"><span class="setup-step-num">2</span><span>Paste your key below</span></div>
+          <div class="setup-step"><span class="setup-step-num">3</span><span>Start using MeetAssist — all AI runs directly from your key</span></div>
+        </div>
+        <input class="login-input" type="password" id="ownKeyInput" placeholder="Paste your API key here" autocomplete="off" spellcheck="false"/>
+        <div class="login-err" id="ownKeyErr"></div>
+        <button class="login-btn" style="background:linear-gradient(135deg,#FBBF24,#D97706);color:#000" id="ownKeyBtn">Activate →</button>
+        <div class="login-switch" style="margin-top:8px"><a href="#" id="backToLogin">← Back to sign in</a></div>
+      </div>
     </div>
   </div>
 </div>
@@ -327,7 +381,8 @@ input[type=range]::-webkit-slider-thumb{
   <!-- Settings panel -->
   <div class="sp" id="sp" style="display:none">
 
-    <div class="credits-row">
+    <!-- Subscription mode header -->
+    <div class="credits-row" id="subSettingsRow">
       <div>
         <div class="credits-info" id="userEmail">Loading…</div>
         <div class="credits-val" id="creditsVal">— credits</div>
@@ -336,6 +391,18 @@ input[type=range]::-webkit-slider-thumb{
         <button class="btn-small" id="buyBtn">+ Buy credits</button>
         <button class="btn-small btn-logout" id="logoutBtn">Sign out</button>
       </div>
+    </div>
+
+    <!-- Lifetime mode header -->
+    <div class="lifetime-row" id="ltSettingsRow" style="display:none">
+      <span class="lifetime-badge">⭐ Lifetime</span>
+      <button class="btn-small btn-logout" id="ltLogoutBtn">Remove key</button>
+    </div>
+
+    <!-- Lifetime: API key field -->
+    <div class="sp-row" id="ltKeyRow" style="display:none">
+      <div class="sp-lbl">API Key</div>
+      <input type="text" id="ltApiKey" placeholder="Paste your API key" autocomplete="off" spellcheck="false"/>
     </div>
 
     <div class="sp-row">
@@ -418,9 +485,11 @@ let sysAudioCtx = null, sysLevelInterval = null;
 let transcript = '', lastSent = '', screenshot = null;
 let busy = false, sessionStart = null, timerTick = null;
 
-// ── Auth helpers ──────────────────────────────────────────────
-function getToken() { return localStorage.getItem('ma_token') || ''; }
-function getRefresh() { return localStorage.getItem('ma_refresh') || ''; }
+// ── Mode: 'subscription' | 'lifetime' ────────────────────────
+let appMode = null;
+function getOwnKey() { return localStorage.getItem('own_api_key') || ''; }
+function getToken()  { return localStorage.getItem('ma_token')    || ''; }
+function getRefresh(){ return localStorage.getItem('ma_refresh')  || ''; }
 
 async function authFetch(url, opts = {}) {
   opts.headers = opts.headers || {};
@@ -463,25 +532,43 @@ function logout() {
   localStorage.removeItem('ma_token');
   localStorage.removeItem('ma_refresh');
   localStorage.removeItem('ma_email');
+  localStorage.removeItem('own_api_key');
+  appMode = null;
   stopMic(); stopSys();
   $('app').style.display = 'none';
   $('loginApp').style.display = 'block';
+  $('loginForm').style.display = 'block';
+  $('registerForm').style.display = 'none';
+  $('apiKeyForm').style.display = 'none';
   $('loginErr').textContent = '';
   resizeLogin();
 }
 
-function showApp(email) {
-  localStorage.setItem('ma_email', email);
+function showApp(mode, email) {
+  appMode = mode;
   $('loginApp').style.display = 'none';
   $('app').style.display = 'block';
-  $('userEmail').textContent = email;
-  loadCredits();
+
+  // Show correct settings header
+  $('subSettingsRow').style.display = mode === 'subscription' ? 'flex' : 'none';
+  $('ltSettingsRow').style.display  = mode === 'lifetime'     ? 'flex' : 'none';
+  $('ltKeyRow').style.display       = mode === 'lifetime'     ? 'block': 'none';
+
+  if (mode === 'subscription') {
+    $('userEmail').textContent = email || '';
+    loadCredits();
+    setStatus('Ready · Ctrl+Shift+M mic · Ctrl+S ask');
+  } else {
+    // Lifetime mode
+    $('ltApiKey').value = getOwnKey();
+    setStatus('Lifetime plan · Ctrl+Shift+M mic · Ctrl+S ask');
+  }
+
   const savedOp = parseInt(localStorage.getItem('opacity') || '94');
   opSlider.value = savedOp;
   opVal.textContent = savedOp + '%';
   applyOpacity(savedOp);
   customPromptEl.value = localStorage.getItem('custom_prompt') || '';
-  setStatus('Ready · Ctrl+Shift+M mic · Ctrl+S ask');
   resize();
 }
 
@@ -517,13 +604,37 @@ $('loginBtn').addEventListener('click', async () => {
     if (!res.ok) { $('loginErr').textContent = d.error || 'Login failed'; return; }
     localStorage.setItem('ma_token', d.token);
     localStorage.setItem('ma_refresh', d.refresh_token);
-    showApp(d.user.email);
+    showApp('subscription', d.user.email);
   } catch(e) {
     $('loginErr').textContent = 'Cannot reach server. Is the backend running?';
   } finally {
     $('loginBtn').disabled = false; $('loginBtn').textContent = 'Sign in';
   }
 });
+
+// ── Own API key (lifetime) form ───────────────────────────────
+$('showApiKey').addEventListener('click', e => {
+  e.preventDefault();
+  $('loginForm').style.display = 'none';
+  $('apiKeyForm').style.display = 'block';
+  resizeLogin();
+});
+$('backToLogin').addEventListener('click', e => {
+  e.preventDefault();
+  $('apiKeyForm').style.display = 'none';
+  $('loginForm').style.display = 'block';
+  resizeLogin();
+});
+$('ownKeyBtn').addEventListener('click', () => {
+  const key = $('ownKeyInput').value.trim();
+  if (!key) { $('ownKeyErr').textContent = 'Please paste your API key'; return; }
+  localStorage.setItem('own_api_key', key);
+  showApp('lifetime');
+});
+$('ltApiKey').addEventListener('change', () => {
+  localStorage.setItem('own_api_key', $('ltApiKey').value.trim());
+});
+$('ltLogoutBtn').addEventListener('click', logout);
 
 $('regBtn').addEventListener('click', async () => {
   const email = $('regEmail').value.trim();
@@ -541,7 +652,7 @@ $('regBtn').addEventListener('click', async () => {
     if (!res.ok) { $('regErr').textContent = d.error || 'Registration failed'; return; }
     localStorage.setItem('ma_token', d.token);
     localStorage.setItem('ma_refresh', d.refresh_token);
-    showApp(d.user.email);
+    showApp('subscription', d.user.email);
   } catch(e) {
     $('regErr').textContent = 'Cannot reach server. Is the backend running?';
   } finally {
@@ -549,18 +660,25 @@ $('regBtn').addEventListener('click', async () => {
   }
 });
 
-// ── Startup: check existing token ─────────────────────────────
+// ── Startup: detect mode ──────────────────────────────────────
 (async () => {
+  // Lifetime mode — own API key stored
+  if (getOwnKey()) {
+    showApp('lifetime');
+    return;
+  }
+  // Subscription mode — JWT stored
   if (getToken()) {
     try {
       const res = await authFetch('/user/credits');
       if (res.ok) {
         const d = await res.json();
-        showApp(d.email);
+        showApp('subscription', d.email);
         return;
       }
     } catch(e) {}
   }
+  // Not authenticated — show login
   $('loginApp').style.display = 'block';
   resizeLogin();
 })();
@@ -570,7 +688,7 @@ settingsBtn.addEventListener('click', () => {
   const open = sp.style.display === 'none';
   sp.style.display = open ? 'block' : 'none';
   settingsBtn.classList.toggle('active', open);
-  if (open) loadCredits();
+  if (open && appMode === 'subscription') loadCredits();
   resize();
 });
 
@@ -635,7 +753,7 @@ micBtn.addEventListener('click', toggleMic);
 function toggleMic() { micOn ? stopMic() : startMic(); }
 
 async function startMic() {
-  if (!getToken()) { setStatus('Sign in to use mic'); return; }
+  if (!getToken() && !getOwnKey()) { setStatus('Sign in or set API key first'); return; }
 
   try {
     micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -696,14 +814,20 @@ function stopMic() {
 }
 
 async function transcribeMic(blob) {
-  if (!getToken()) return;
   try {
     const form = new FormData();
     form.append('file', blob, 'audio.webm');
     form.append('model', 'whisper-large-v3-turbo');
     form.append('response_format', 'json');
     form.append('language', 'en');
-    const res = await authFetch('/ai/transcribe', { method: 'POST', body: form });
+    let res;
+    if (appMode === 'lifetime') {
+      res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+        method: 'POST', headers: { 'Authorization': 'Bearer ' + getOwnKey() }, body: form
+      });
+    } else {
+      res = await authFetch('/ai/transcribe', { method: 'POST', body: form });
+    }
     if (!res.ok) return;
     const data = await res.json();
     const text = (data.text || '').trim();
@@ -761,7 +885,7 @@ sysBtn.addEventListener('click', toggleSys);
 function toggleSys() { sysOn ? stopSys() : startSys(); }
 
 async function startSys() {
-  if (!getToken()) { setStatus('Sign in to use speaker audio'); return; }
+  if (!getToken() && !getOwnKey()) { setStatus('Sign in or set API key first'); return; }
 
   try {
     const sources = await ipcRenderer.invoke('get-sources');
@@ -859,14 +983,20 @@ const WHISPER_HALLUCINATIONS = new Set([
 ]);
 
 async function transcribeAudio(blob) {
-  if (!getToken()) return;
   try {
     const form = new FormData();
     form.append('file', blob, 'audio.webm');
     form.append('model', 'whisper-large-v3-turbo');
     form.append('response_format', 'json');
     form.append('language', 'en');
-    const res = await authFetch('/ai/transcribe', { method: 'POST', body: form });
+    let res;
+    if (appMode === 'lifetime') {
+      res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+        method: 'POST', headers: { 'Authorization': 'Bearer ' + getOwnKey() }, body: form
+      });
+    } else {
+      res = await authFetch('/ai/transcribe', { method: 'POST', body: form });
+    }
     if (!res.ok) return;
     const data = await res.json();
     const text = (data.text || '').trim();
@@ -907,7 +1037,7 @@ clearSsBtn.addEventListener('click', () => {
 // ── Ask AI ────────────────────────────────────────────────────
 async function askAI() {
   if (busy) return;
-  if (!getToken()) { setStatus('Sign in to use AI'); return; }
+  if (!getToken() && !getOwnKey()) { setStatus('Sign in or set API key first'); return; }
   if (!transcript.trim() && !screenshot) {
     setStatus('Start mic (Ctrl+Shift+M) first, then press Ctrl+S');
     return;
@@ -948,14 +1078,17 @@ async function askAI() {
 
   try {
     if (screenshot) {
-      const ans = await visionBackend(newChunk, screenshot);
+      const ans = appMode === 'lifetime'
+        ? await visionDirect(getOwnKey(), newChunk, screenshot)
+        : await visionBackend(newChunk, screenshot);
       finishMsg(msgEl, ans);
       autoCopy(ans);
     } else {
-      await streamBackend(newChunk, msgEl);
+      if (appMode === 'lifetime') await streamDirect(getOwnKey(), newChunk, msgEl);
+      else await streamBackend(newChunk, msgEl);
     }
     setStatus('Done · Ctrl+S to ask again');
-    loadCredits(); // refresh balance after each AI call
+    if (appMode === 'subscription') loadCredits();
   } catch(e) {
     if (e.message === 'NO_CREDITS') {
       errorMsg(msgEl, 'No credits left. Buy more via ⚙ settings.');
@@ -976,6 +1109,77 @@ function buildSystemPrompt() {
   const custom = (localStorage.getItem('custom_prompt') || '').trim();
   const base = 'You are a real-time meeting assistant. Based on the transcript, suggest a natural, confident response the user can say next. Be concise — 2-4 sentences, no preamble or meta-commentary.';
   return custom ? base + '\n\nAdditional instructions: ' + custom : base;
+}
+
+// Lifetime mode — direct API calls with user's own key
+async function streamDirect(key, text, msgEl) {
+  const textEl = msgEl.querySelector('.mt');
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: buildSystemPrompt() },
+        { role: 'user',   content: 'Meeting transcript:\n' + text }
+      ],
+      max_tokens: 400, temperature: 0.65, stream: true
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || 'API error ' + res.status);
+  }
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '', full = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split('\n'); buf = lines.pop();
+    for (const line of lines) {
+      const t = line.trim();
+      if (!t || t === 'data: [DONE]') continue;
+      if (t.startsWith('data: ')) {
+        try {
+          const delta = JSON.parse(t.slice(6)).choices?.[0]?.delta?.content;
+          if (delta) { full += delta; textEl.textContent = full; scrollBottom(); resize(); }
+        } catch(e) {}
+      }
+    }
+  }
+  finishMsg(msgEl, full);
+  autoCopy(full);
+}
+
+async function visionDirect(key, text, b64) {
+  const custom = (localStorage.getItem('custom_prompt') || '').trim();
+  const sysBase = 'You are a meeting assistant. Analyze the screenshot and provide a helpful, actionable response. Be concise.';
+  const system  = custom ? sysBase + '\n\nAdditional instructions: ' + custom : sysBase;
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+    body: JSON.stringify({
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: [
+          { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + b64 } },
+          { type: 'text', text: text
+              ? 'Meeting transcript:\n' + text + '\n\nAnalyze the screenshot and suggest a helpful response.'
+              : 'Analyze this screenshot and give a helpful, actionable response.' }
+        ]}
+      ],
+      max_tokens: 500, temperature: 0.65
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || 'API error ' + res.status);
+  }
+  const d = await res.json();
+  return d.choices?.[0]?.message?.content?.trim() || 'No response.';
 }
 
 async function streamBackend(text, msgEl) {

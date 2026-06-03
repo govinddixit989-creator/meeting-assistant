@@ -16,6 +16,7 @@ app.get('/health', (_, res) => res.json({ ok: true, ts: Date.now() }));
 app.use('/auth',   require('./routes/auth'));
 app.use('/ai',     require('./routes/ai'));
 app.use('/user',   require('./routes/credits'));
+app.use('/codes',  require('./routes/codes'));
 
 // Only load Stripe routes if a real key is configured
 const stripeKey = process.env.STRIPE_SECRET_KEY || '';

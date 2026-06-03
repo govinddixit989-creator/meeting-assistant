@@ -572,7 +572,7 @@ footer{
     <h1>Your AI co-pilot<br/>nobody can <span class="hl">see.</span></h1>
 
     <p class="hero-sub">
-      MeetAssist sits invisibly over your meetings — real-time AI suggestions, live transcription, screenshot analysis. Pay only for what you use. No $40/month subscriptions.
+      MeetAssist sits invisibly over your meetings — real-time AI suggestions, live transcription, screenshot analysis. Pay once, use forever. No subscriptions, ever.
     </p>
 
     <div class="hero-ctas">
@@ -887,10 +887,12 @@ footer{
 <section id="pricing">
   <div class="container">
     <div class="section-tag">✦ Pricing</div>
-    <h2>Pay for what you use.<br/>Nothing more.</h2>
-    <p class="section-sub">Credits never expire. No monthly fees. No lock-in. Perfect for people who meet once a week — not every day.</p>
+    <h2>Pick what works for you.</h2>
+    <p class="section-sub">Pay as you go with credits, or pay once for lifetime access with your own API key.</p>
 
     <div class="pricing-grid fade-up">
+
+      <!-- Pay as you go -->
       <div class="plan">
         <div class="plan-name">Starter</div>
         <div class="plan-price"><sup>$</sup>5</div>
@@ -921,24 +923,29 @@ footer{
         <button class="btn btn-primary plan-btn" data-plan="standard">Get Started</button>
       </div>
 
-      <div class="plan">
-        <div class="plan-name">Pro</div>
-        <div class="plan-price"><sup>$</sup>30</div>
-        <div class="plan-hrs">20 hours of meetings</div>
-        <div class="plan-rate">~$1.50 / hour</div>
+      <!-- Lifetime -->
+      <div class="plan" style="border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.03)">
+        <div class="plan-name" style="color:var(--am)">⭐ Lifetime</div>
+        <div class="plan-price"><sup>$</sup>50</div>
+        <div class="plan-hrs">Unlimited · Forever</div>
+        <div class="plan-rate" style="background:rgba(251,191,36,.1);color:var(--am)">One-time · Never expires</div>
         <ul class="plan-perks">
-          <li>20 hrs AI meeting support</li>
-          <li>Live mic transcription</li>
-          <li>Speaker audio capture</li>
+          <li>Unlimited meetings, forever</li>
+          <li>Live mic + speaker capture</li>
           <li>Screenshot analysis</li>
-          <li>Credits never expire</li>
+          <li>All future updates included</li>
+          <li>Use your own API key</li>
         </ul>
-        <button class="btn btn-ghost plan-btn" data-plan="pro">Get Started</button>
+        <button class="btn plan-btn" data-modal="code"
+          style="width:100%;justify-content:center;background:linear-gradient(135deg,#FBBF24,#D97706);color:#000;font-weight:700;border:none;border-radius:8px;padding:9px 20px;cursor:pointer;font-size:14px">
+          Enter Access Code
+        </button>
       </div>
+
     </div>
 
     <p class="pricing-note">
-      ✓ &nbsp;One-time payment · No subscription · Credits never expire
+      ✓ &nbsp;Credits never expire · No auto-renewals · Lifetime plan uses your own API key
     </p>
   </div>
 </section>
@@ -991,33 +998,27 @@ footer{
   </div>
 </section>
 
-<!-- PAYMENT MODAL -->
-<div class="modal-backdrop" id="modalBackdrop">
+<!-- CREDITS MODAL -->
+<div class="modal-backdrop" id="creditsBackdrop">
   <div class="modal">
-    <button class="modal-close" id="modalClose">✕</button>
+    <button class="modal-close" id="creditsModalClose">✕</button>
 
-    <!-- Step 1: Register -->
-    <div class="modal-step active" id="step1">
-      <div class="modal-plan-badge" id="badgeText">⚡ Starter — $5</div>
+    <div class="modal-step active" id="cs1">
+      <div class="modal-plan-badge" id="cBadge">Standard — $15</div>
       <h3>Create your account</h3>
-      <p class="modal-sub">Set up your account first, then we'll show you payment details.</p>
-      <input class="modal-input" type="email"    id="mEmail" placeholder="Your email" autocomplete="off"/>
-      <input class="modal-input" type="password" id="mPass"  placeholder="Choose a password (min 6 chars)"/>
-      <div class="modal-err" id="step1Err"></div>
-      <button class="modal-btn" id="step1Btn">Continue to payment →</button>
+      <p class="modal-sub">Set up your account, then we'll show payment details.</p>
+      <input class="modal-input" type="email"    id="cEmail" placeholder="Your email" autocomplete="off"/>
+      <input class="modal-input" type="password" id="cPass"  placeholder="Password (min 6 chars)"/>
+      <div class="modal-err" id="cs1Err"></div>
+      <button class="modal-btn" id="cs1Btn">Continue to payment →</button>
     </div>
 
-    <!-- Step 2: Payment instructions -->
-    <div class="modal-step" id="step2">
-      <div class="modal-plan-badge" id="step2Badge">⚡ Starter — $5</div>
+    <div class="modal-step" id="cs2">
+      <div class="modal-plan-badge" id="cs2Badge">Standard — $15</div>
       <h3>Send your payment</h3>
-      <p class="modal-sub">Pay using any method below. We'll confirm manually and activate your account.</p>
-
-      <div class="pay-amount"><sup>$</sup><span id="payAmount">5</span></div>
-
+      <p class="modal-sub">Pay using any method below, then click confirm.</p>
+      <div class="pay-amount"><sup>$</sup><span id="cAmount">15</span></div>
       <hr class="pay-divider"/>
-
-      <!-- UPDATE THESE WITH YOUR ACTUAL PAYMENT DETAILS -->
       <div class="pay-method">
         <div class="pay-method-label">PayPal</div>
         <div class="pay-method-value">paypal.me/yourpaypallink</div>
@@ -1026,46 +1027,67 @@ footer{
         <div class="pay-method-label">UPI / GPay</div>
         <div class="pay-method-value">yourname@upi</div>
       </div>
-
-      <div class="pay-note">
-        ⚠️ <strong>Important:</strong> use your email <strong id="refEmail"></strong> as the payment note/reference so we can match your payment.
-      </div>
-
+      <div class="pay-note">⚠️ Use <strong id="cRefEmail"></strong> as the payment reference.</div>
       <hr class="pay-divider"/>
-      <button class="modal-btn" id="step2Btn">I've sent the payment →</button>
+      <button class="modal-btn" id="cs2Btn">I've sent the payment →</button>
     </div>
 
-    <!-- Step 3: Waiting for confirmation -->
-    <div class="modal-step" id="step3">
+    <div class="modal-step" id="cs3">
       <div style="padding:8px 0">
         <div class="wait-icon"></div>
         <div class="wait-title">Waiting for confirmation</div>
-        <div class="wait-sub">Once payment is confirmed we'll activate your account. This page checks automatically.</div>
-        <div class="wait-email-box" id="waitEmail"></div>
+        <div class="wait-sub">We'll activate your account once payment is verified.</div>
+        <div class="wait-email-box" id="cWaitEmail"></div>
         <div class="wait-pulse" style="margin-top:16px">
           <span class="wait-pulse-dot"></span>
-          <span id="pollStatus">Checking…</span>
+          <span id="cPollStatus">Checking…</span>
         </div>
-        <div id="pollError" style="font-size:11px;color:#F87171;text-align:center;margin-top:8px;min-height:14px"></div>
-        <button class="modal-btn" id="checkNowBtn" style="margin-top:16px;background:rgba(255,255,255,.07);box-shadow:none;font-weight:600">
-          Check now ↻
-        </button>
+        <div id="cPollError" style="font-size:11px;color:#F87171;text-align:center;margin-top:8px;min-height:14px"></div>
+        <button class="modal-btn" id="cCheckBtn" style="margin-top:16px;background:rgba(255,255,255,.07);box-shadow:none">Check now ↻</button>
       </div>
     </div>
 
-    <!-- Step 4: Confirmed — download -->
-    <div class="modal-step" id="step4">
+    <div class="modal-step" id="cs4">
       <div class="dl-icon">🎉</div>
       <div class="dl-title">Payment confirmed!</div>
-      <div class="dl-sub">Your account is active. Download the app, sign in with your email, and you're live.</div>
-      <!-- UPDATE href WITH YOUR ACTUAL DOWNLOAD LINK -->
+      <div class="dl-sub">Sign in to the app with your email and password to start using your credits.</div>
       <a href="https://github.com/govinddixit989-creator/meeting-assistant/releases/latest/download/MeetAssist.exe"
-         class="dl-btn" id="dlBtn" download>
+         class="dl-btn" download>⬇ Download MeetAssist.exe</a>
+      <div class="dl-creds" style="margin-top:16px">Sign in with <strong id="cDlEmail"></strong></div>
+    </div>
+  </div>
+</div>
+
+<!-- ACCESS CODE MODAL -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+
+    <!-- Step 1: Enter code -->
+    <div class="modal-step active" id="step1">
+      <div class="dl-icon" style="font-size:36px;margin-bottom:12px">🔑</div>
+      <h3 style="text-align:center">Enter your access code</h3>
+      <p class="modal-sub" style="text-align:center;margin:8px 0 20px">You received this code after purchase. It's a one-time use code.</p>
+      <input class="modal-input" type="text" id="codeInput"
+        placeholder="e.g. MEET-ABC123"
+        autocomplete="off" spellcheck="false"
+        style="text-align:center;font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase"/>
+      <div class="modal-err" id="codeErr"></div>
+      <button class="modal-btn" id="codeBtn">Unlock Download →</button>
+    </div>
+
+    <!-- Step 2: Download -->
+    <div class="modal-step" id="step2">
+      <div class="dl-icon">🎉</div>
+      <div class="dl-title">Code verified!</div>
+      <div class="dl-sub">Your lifetime access is confirmed. Download the app and enter your API key to get started.</div>
+      <a id="dlLink"
+         href="https://github.com/govinddixit989-creator/meeting-assistant/releases/latest/download/MeetAssist.exe"
+         class="dl-btn" download>
         ⬇ Download MeetAssist.exe
       </a>
-      <div class="dl-creds">
-        Sign in with <strong id="dlEmail"></strong><br/>
-        Use the password you set during signup.
+      <div class="dl-creds" style="margin-top:16px">
+        Need help? Contact us and we'll get you set up.
       </div>
     </div>
 
@@ -1090,12 +1112,6 @@ footer{
 const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:3001'
   : 'https://meeting-assistant-backend-ten.vercel.app';
-
-const PLANS = {
-  starter:  { label: '⚡ Starter — $5',   amount: '5',  credits: 40  },
-  standard: { label: '🔥 Standard — $15', amount: '15', credits: 160 },
-  pro:      { label: '💎 Pro — $30',      amount: '30', credits: 400 },
-};
 
 // ── Scroll fade-in ────────────────────────────────────────────
 const observer = new IntersectionObserver(entries => {
@@ -1127,184 +1143,165 @@ window.addEventListener('scroll', () => {
 }, { passive: true });
 
 // ── Modal ─────────────────────────────────────────────────────
-const backdrop  = document.getElementById('modalBackdrop');
-let currentPlan = 'starter';
-let userToken   = '';
-let userEmail   = '';
-let pollTimer   = null;
+const backdrop = document.getElementById('modalBackdrop');
 
 function showStep(n) {
   document.querySelectorAll('.modal-step').forEach(s => s.classList.remove('active'));
   document.getElementById('step' + n).classList.add('active');
 }
 
-function openModal(plan) {
-  currentPlan = plan || 'starter';
-  const p = PLANS[currentPlan];
-  document.getElementById('badgeText').textContent  = p.label;
-  document.getElementById('step2Badge').textContent = p.label;
-  document.getElementById('payAmount').textContent  = p.amount;
-  document.getElementById('step1Err').textContent   = '';
-  document.getElementById('mEmail').value = '';
-  document.getElementById('mPass').value  = '';
+function openModal() {
+  document.getElementById('codeInput').value = '';
+  document.getElementById('codeErr').textContent = '';
   showStep(1);
   backdrop.classList.add('open');
   document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('codeInput').focus(), 100);
 }
 
 function closeModal() {
   backdrop.classList.remove('open');
   document.body.style.overflow = '';
-  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
 }
 
 document.getElementById('modalClose').addEventListener('click', closeModal);
 backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
-// Wire every "Get Started" button
+// Credits modal — all data-plan buttons
 document.querySelectorAll('[data-plan]').forEach(btn => {
-  btn.addEventListener('click', e => {
-    e.preventDefault();
-    openModal(btn.dataset.plan);
-  });
+  btn.addEventListener('click', e => { e.preventDefault(); openCreditsModal(btn.dataset.plan); });
 });
 
-// Step 1 — register
-document.getElementById('step1Btn').addEventListener('click', async () => {
-  const email = document.getElementById('mEmail').value.trim();
-  const pass  = document.getElementById('mPass').value;
-  const errEl = document.getElementById('step1Err');
+// Code modal — data-modal="code" buttons
+document.querySelectorAll('[data-modal="code"]').forEach(btn => {
+  btn.addEventListener('click', e => { e.preventDefault(); openModal(); });
+});
+
+// ── Credits modal ─────────────────────────────────────────────
+const creditsBackdrop = document.getElementById('creditsBackdrop');
+const PLANS = {
+  starter:  { label: 'Starter — $5',   amount: '5'  },
+  standard: { label: 'Standard — $15', amount: '15' },
+  pro:      { label: 'Pro — $30',      amount: '30' },
+};
+let cToken = '', cEmail = '', cPollTimer = null;
+
+function showCStep(n) {
+  creditsBackdrop.querySelectorAll('.modal-step').forEach(s => s.classList.remove('active'));
+  document.getElementById('cs' + n).classList.add('active');
+}
+
+function openCreditsModal(plan) {
+  const p = PLANS[plan] || PLANS.standard;
+  document.getElementById('cBadge').textContent  = p.label;
+  document.getElementById('cs2Badge').textContent = p.label;
+  document.getElementById('cAmount').textContent  = p.amount;
+  document.getElementById('cs1Err').textContent   = '';
+  document.getElementById('cEmail').value = '';
+  document.getElementById('cPass').value  = '';
+  showCStep(1);
+  creditsBackdrop.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCreditsModal() {
+  creditsBackdrop.classList.remove('open');
+  document.body.style.overflow = '';
+  if (cPollTimer) { clearInterval(cPollTimer); cPollTimer = null; }
+}
+
+document.getElementById('creditsModalClose').addEventListener('click', closeCreditsModal);
+creditsBackdrop.addEventListener('click', e => { if (e.target === creditsBackdrop) closeCreditsModal(); });
+
+document.getElementById('cs1Btn').addEventListener('click', async () => {
+  const email = document.getElementById('cEmail').value.trim();
+  const pass  = document.getElementById('cPass').value;
+  const errEl = document.getElementById('cs1Err');
+  const btn   = document.getElementById('cs1Btn');
   errEl.textContent = '';
-
-  if (!email || !pass) { errEl.textContent = 'Email and password are required.'; return; }
+  if (!email || !pass) { errEl.textContent = 'Email and password required.'; return; }
   if (pass.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
-
-  const btn = document.getElementById('step1Btn');
   btn.disabled = true; btn.textContent = 'Creating account…';
-
   try {
     const res = await fetch(API + '/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password: pass })
     });
     const d = await res.json();
-    if (!res.ok) { errEl.textContent = d.error || 'Registration failed. Try again.'; return; }
-
-    userToken = d.token;
-    userEmail = email;
-    saveSession(d.token, d.refresh_token, email);
-
-    document.getElementById('refEmail').textContent = email;
-    document.getElementById('waitEmail').textContent = email;
-    document.getElementById('dlEmail').textContent   = email;
-
-    showStep(2);
-  } catch(e) {
-    errEl.textContent = 'Cannot reach server. Make sure the backend is running.';
-  } finally {
-    btn.disabled = false; btn.textContent = 'Continue to payment →';
-  }
+    if (!res.ok) { errEl.textContent = d.error || 'Registration failed.'; return; }
+    cToken = d.token; cEmail = email;
+    sessionStorage.setItem('ma_token', d.token);
+    sessionStorage.setItem('ma_refresh', d.refresh_token);
+    sessionStorage.setItem('ma_email', email);
+    document.getElementById('cRefEmail').textContent = email;
+    document.getElementById('cWaitEmail').textContent = email;
+    document.getElementById('cDlEmail').textContent = email;
+    showCStep(2);
+  } catch(e) { errEl.textContent = 'Cannot reach server.'; }
+  finally { btn.disabled = false; btn.textContent = 'Continue to payment →'; }
 });
 
-// Step 2 — user claims to have paid → start polling
-document.getElementById('step2Btn').addEventListener('click', () => {
-  showStep(3);
-  startPolling();
+document.getElementById('cs2Btn').addEventListener('click', () => { showCStep(3); startCPolling(); });
+
+document.getElementById('cCheckBtn').addEventListener('click', checkCCredits);
+
+function startCPolling() { checkCCredits(); cPollTimer = setInterval(checkCCredits, 8000); }
+
+async function checkCCredits() {
+  const statusEl = document.getElementById('cPollStatus');
+  const errEl    = document.getElementById('cPollError');
+  statusEl.textContent = 'Checking…'; errEl.textContent = '';
+  if (!cToken) { cToken = sessionStorage.getItem('ma_token') || ''; cEmail = sessionStorage.getItem('ma_email') || ''; }
+  if (!cToken) { errEl.textContent = 'Session lost — please register again.'; return; }
+  try {
+    const res = await fetch(API + '/user/credits', { headers: { 'Authorization': 'Bearer ' + cToken } });
+    if (!res.ok) { errEl.textContent = 'Error ' + res.status; return; }
+    const { credits } = await res.json();
+    statusEl.textContent = 'Credits: ' + credits + ' — checking every 8s';
+    if (credits > 0) { clearInterval(cPollTimer); showCStep(4); }
+  } catch(e) { errEl.textContent = 'Cannot reach server.'; }
+}
+
+// ── Auto-uppercase as user types
+document.getElementById('codeInput').addEventListener('input', function() {
+  this.value = this.value.toUpperCase();
 });
 
-// Persist token across page refreshes
-function saveSession(token, refresh, email) {
-  sessionStorage.setItem('ma_token',   token);
-  sessionStorage.setItem('ma_refresh', refresh || '');
-  sessionStorage.setItem('ma_email',   email  || '');
-}
-function loadSession() {
-  return {
-    token:   sessionStorage.getItem('ma_token')   || '',
-    refresh: sessionStorage.getItem('ma_refresh') || '',
-    email:   sessionStorage.getItem('ma_email')   || '',
-  };
-}
+// Enter key submits
+document.getElementById('codeInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('codeBtn').click();
+});
 
-// Poll /user/credits — show download when credits > 0
-function startPolling() {
-  if (pollTimer) clearInterval(pollTimer);
-  document.getElementById('checkNowBtn').addEventListener('click', () => checkCredits());
-  checkCredits();
-  pollTimer = setInterval(checkCredits, 8000);
-}
+// Validate code
+document.getElementById('codeBtn').addEventListener('click', async () => {
+  const code   = document.getElementById('codeInput').value.trim().toUpperCase();
+  const errEl  = document.getElementById('codeErr');
+  const btn    = document.getElementById('codeBtn');
+  errEl.textContent = '';
 
-async function checkCredits() {
-  const statusEl = document.getElementById('pollStatus');
-  const errorEl  = document.getElementById('pollError');
-  statusEl.textContent = 'Checking…';
-  errorEl.textContent  = '';
+  if (!code) { errEl.textContent = 'Please enter your access code.'; return; }
 
-  // Try to refresh token if we have a refresh token
-  if (!userToken) {
-    const sess = loadSession();
-    if (sess.token) {
-      userToken   = sess.token;
-      userEmail   = sess.email;
-    }
-  }
-
-  if (!userToken) {
-    errorEl.textContent = 'Session lost — please register again.';
-    statusEl.textContent = 'Error';
-    return;
-  }
+  btn.disabled = true; btn.textContent = 'Verifying…';
 
   try {
-    let res = await fetch(API + '/user/credits', {
-      headers: { 'Authorization': 'Bearer ' + userToken }
+    const res = await fetch(API + '/codes/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
     });
+    const d = await res.json();
+    if (!res.ok) { errEl.textContent = d.error || 'Invalid code. Please try again.'; return; }
 
-    // Token expired — try refresh
-    if (res.status === 401) {
-      const sess = loadSession();
-      if (sess.refresh) {
-        const r = await fetch(API + '/auth/refresh', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh_token: sess.refresh })
-        });
-        if (r.ok) {
-          const d = await r.json();
-          userToken = d.token;
-          saveSession(d.token, d.refresh_token, userEmail);
-          res = await fetch(API + '/user/credits', {
-            headers: { 'Authorization': 'Bearer ' + userToken }
-          });
-        } else {
-          errorEl.textContent = 'Session expired — please register again.';
-          statusEl.textContent = 'Error';
-          return;
-        }
-      }
-    }
-
-    if (!res.ok) {
-      const d = await res.json().catch(() => ({}));
-      errorEl.textContent = 'Server error: ' + (d.error || res.status);
-      statusEl.textContent = 'Error';
-      return;
-    }
-
-    const { credits } = await res.json();
-    statusEl.textContent = `Credits: ${credits} — checking every 8s`;
-
-    if (credits > 0) {
-      if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-      showStep(4);
-    }
+    // Valid — update download link and show success screen
+    document.getElementById('dlLink').href = d.download_url;
+    showStep(2);
   } catch(e) {
-    errorEl.textContent = 'Cannot reach server: ' + e.message;
-    statusEl.textContent = 'Error';
+    errEl.textContent = 'Cannot reach server. Please try again.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Unlock Download →';
   }
-}
+});
 </script>
 </body>
 </html>
