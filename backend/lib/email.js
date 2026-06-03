@@ -1,14 +1,16 @@
-const { Resend } = require('resend');
+const Brevo = require('@getbrevo/brevo');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM   = process.env.RESEND_FROM || 'MeetAssist <onboarding@resend.dev>';
+const client = Brevo.ApiClient.instance;
+client.authentications['api-key'].apiKey = process.env.BREVO_API_KEY;
+
+const api = new Brevo.TransactionalEmailsApi();
 
 async function sendAccessCode(toEmail, code) {
-  const { error } = await resend.emails.send({
-    from: FROM,
-    to:   toEmail,
+  await api.sendTransacEmail({
+    sender:  { name: 'MeetAssist', email: process.env.BREVO_FROM || 'govinddixit989@gmail.com' },
+    to:      [{ email: toEmail }],
     subject: 'Your MeetAssist Lifetime Access Code',
-    html: `
+    htmlContent: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0D1117;color:#F0F2F5;padding:32px;border-radius:12px">
         <h2 style="margin:0 0 8px;font-size:22px">Your access code is ready 🎉</h2>
         <p style="color:rgba(240,242,245,.6);margin:0 0 24px">Thanks for purchasing MeetAssist Lifetime access. Here's your unique code:</p>
@@ -36,8 +38,6 @@ async function sendAccessCode(toEmail, code) {
       </div>
     `,
   });
-
-  if (error) throw new Error(error.message);
 }
 
 module.exports = { sendAccessCode };
