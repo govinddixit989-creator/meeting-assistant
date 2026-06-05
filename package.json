@@ -16,7 +16,11 @@
   "build": {
     "appId": "com.meeting.assistant",
     "productName": "MeetAssist",
+    "directories": {
+      "buildResources": "assets"
+    },
     "win": {
+      "icon": "assets/icon.ico",
       "target": "portable",
       "artifactName": "MeetAssist.exe"
     }

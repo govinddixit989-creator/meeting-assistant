@@ -318,6 +318,22 @@ input[type=range]::-webkit-slider-thumb{
     <button class="ib" id="closeLoginBtn" title="Quit">✕</button>
   </div>
   <div class="login-wrap">
+    <div style="margin-bottom:6px">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+        <defs>
+          <linearGradient id="ibg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#10B981"/>
+            <stop offset="100%" stop-color="#059669"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="48" height="48" rx="12" ry="12" fill="url(#ibg)"/>
+        <rect x="9"  y="21" width="4" height="6"  rx="2" fill="white" opacity="0.55"/>
+        <rect x="15" y="17" width="4" height="14" rx="2" fill="white" opacity="0.75"/>
+        <rect x="21" y="13" width="4" height="22" rx="2" fill="white"/>
+        <rect x="27" y="17" width="4" height="14" rx="2" fill="white" opacity="0.75"/>
+        <rect x="33" y="21" width="4" height="6"  rx="2" fill="white" opacity="0.55"/>
+      </svg>
+    </div>
     <div class="login-logo">Meet<span>Assist</span></div>
     <div class="login-sub">AI MEETING ASSISTANT</div>
 
@@ -361,9 +377,19 @@ input[type=range]::-webkit-slider-thumb{
 
   <!-- Titlebar -->
   <div class="bar">
-    <div class="dot" id="dot"></div>
-    <span class="bar-title">Assistant</span>
-    <span class="bar-timer" id="timer" style="display:none">00:00</span>
+    <!-- Logo mark -->
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="22" height="22" style="flex-shrink:0">
+      <rect x="0" y="0" width="48" height="48" rx="11" fill="#10B981"/>
+      <rect x="9"  y="21" width="4" height="6"  rx="2" fill="white" opacity="0.55"/>
+      <rect x="15" y="17" width="4" height="14" rx="2" fill="white" opacity="0.8"/>
+      <rect x="21" y="13" width="4" height="22" rx="2" fill="white"/>
+      <rect x="27" y="17" width="4" height="14" rx="2" fill="white" opacity="0.8"/>
+      <rect x="33" y="21" width="4" height="6"  rx="2" fill="white" opacity="0.55"/>
+    </svg>
+    <!-- Wordmark -->
+    <span style="font-size:11px;font-weight:800;letter-spacing:-.02em;color:#EEEEF0;flex-shrink:0">Meet<span style="color:#10B981">Assist</span></span>
+    <div class="dot" id="dot" style="margin-left:2px"></div>
+    <span class="bar-timer" id="timerInline" style="display:none;font-size:9.5px;color:rgba(238,238,240,0.45);font-variant-numeric:tabular-nums"></span>
     <div class="bar-sp"></div>
     <button class="ib" id="settingsBtn" title="Settings">⚙</button>
     <button class="ib" id="micBtn"      title="Mic  Ctrl+Shift+M">🎙</button>
@@ -461,7 +487,7 @@ const API = 'https://meeting-assistant-backend-ten.vercel.app';
 
 const $ = id => document.getElementById(id);
 const dot         = $('dot');
-const timerEl     = $('timer');
+const timerEl     = $('timerInline');
 const micBtn      = $('micBtn');
 const sysBtn      = $('sysBtn');
 const ssBtn       = $('ssBtn');
