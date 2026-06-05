@@ -1,0 +1,9 @@
+node_modules
+backend
+assets
+src
+dist
+{src,assets}
+make_logo.py
+package.json
+package-lock.json
